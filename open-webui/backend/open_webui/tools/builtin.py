@@ -1669,3 +1669,146 @@ async def query_knowledge_bases(
     except Exception as e:
         log.exception(f"query_knowledge_bases error: {e}")
         return json.dumps({"error": str(e)})
+
+
+# =============================================================================
+# GRAD-SCHOOL DISCOVERY (CSRankings faculty / programs)
+# =============================================================================
+
+
+async def list_faculty_by_area_and_school(
+    area: str,
+    school: str,
+    count: int = 20,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Find faculty at a specific school who work in a given research area.
+    Use this to answer questions like "Which faculty at School Z do NLP/security/systems?"
+
+    :param area: Research area (e.g. NLP, security, machine learning, systems, vision)
+    :param school: School or department name (as in the database, e.g. "Carnegie Mellon University")
+    :param count: Maximum number of faculty to return (default: 20)
+    :return: JSON list of faculty with name, dept, homepage, scholar_url, top_areas, top_venues
+    """
+    log.info("grad_school tool called: list_faculty_by_area_and_school(area=%r, school=%r, count=%s)", area, school, count)
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        from open_webui.utils.grad_school import (
+            normalize_area,
+            search_faculty_by_school_and_areas,
+        )
+
+        area_keys = normalize_area(area)
+        if not area_keys:
+            return json.dumps(
+                {"error": f"Unknown research area: {area!r}. Try e.g. NLP, security, machine learning, systems, vision."}
+            )
+
+        results = search_faculty_by_school_and_areas(
+            school=school,
+            area_keys=area_keys,
+            limit=count,
+        )
+        return json.dumps(results, ensure_ascii=False)
+    except Exception as e:
+        log.exception(f"list_faculty_by_area_and_school error: {e}")
+        return json.dumps({"error": str(e)})
+
+
+async def list_top_programs_by_area(
+    area: str,
+    count: int = 15,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Rank graduate programs (departments) by strength in a research area.
+    Use this to answer questions like "Show top programs in Y research area."
+
+    :param area: Research area (e.g. NLP, machine learning, security, systems)
+    :param count: Maximum number of programs to return (default: 15)
+    :return: JSON list of {dept, score} ordered by strength in that area
+    """
+    log.info("grad_school tool called: list_top_programs_by_area(area=%r, count=%s)", area, count)
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        from open_webui.utils.grad_school import (
+            normalize_area,
+            rank_programs_by_area,
+            KNOWN_PARENT_AREAS,
+        )
+
+        area_keys = normalize_area(area)
+        if not area_keys:
+            return json.dumps(
+                {"error": f"Unknown research area: {area!r}. Try e.g. NLP, machine learning, security, systems."}
+            )
+        # Use first mapped area for ranking (e.g. "systems" -> arch, ops, comm, hpc; we rank by first)
+        area_key = area_keys[0]
+        if area_key not in KNOWN_PARENT_AREAS:
+            return json.dumps({"error": f"Invalid area key: {area_key}"})
+
+        results = rank_programs_by_area(area_key=area_key, limit=count)
+        return json.dumps(results, ensure_ascii=False)
+    except Exception as e:
+        log.exception(f"list_top_programs_by_area error: {e}")
+        return json.dumps({"error": str(e)})
+
+
+# =============================================================================
+# DEADLINES (TO-DO: implement when deadline index/ingestion is ready)
+# =============================================================================
+
+
+async def get_program_deadlines(
+    school: str,
+    degree_level: str = "phd",
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Get application deadlines for programs at a school (PhD or MS).
+    TO-DO: Implement once deadline index and ingestion are available.
+
+    :param school: School or university name
+    :param degree_level: "phd" or "ms"
+    :param start_date: Optional filter: only deadlines on or after this date (YYYY-MM-DD)
+    :param end_date: Optional filter: only deadlines on or before this date (YYYY-MM-DD)
+    :return: JSON list of program deadlines
+    """
+    # TO-DO: Query grad_program_deadlines (or similar) index; return structured list
+    return json.dumps(
+        {"error": "Deadline lookup is not implemented yet (TO-DO). Use list_top_programs_by_area and list_faculty_by_area_and_school for now."}
+    )
+
+
+async def filter_programs_by_deadline_and_degree(
+    degree_level: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    count: int = 20,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Filter programs by degree level (MS vs PhD) and deadline date range.
+    TO-DO: Implement once deadline index and ingestion are available.
+
+    :param degree_level: "phd" or "ms"
+    :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
+    :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
+    :param count: Maximum number of programs to return (default: 20)
+    :return: JSON list of programs with deadlines in the given range
+    """
+    # TO-DO: Query grad_program_deadlines index with range + degree_level filter
+    return json.dumps(
+        {"error": "Filter by deadline/degree is not implemented yet (TO-DO). Use list_top_programs_by_area for now."}
+    )

@@ -1574,6 +1574,16 @@ ENABLE_NOTES = PersistentConfig(
     os.environ.get("ENABLE_NOTES", "True").lower() == "true",
 )
 
+# Grad-school discovery assistant (CSRankings faculty / program tools)
+ENABLE_GRAD_SCHOOL_TOOLS = PersistentConfig(
+    "ENABLE_GRAD_SCHOOL_TOOLS",
+    "grad_school.enable",
+    os.getenv("ENABLE_GRAD_SCHOOL_TOOLS", "true").lower() == "true",
+)
+GRAD_SCHOOL_ES_INDEX = os.environ.get(
+    "GRAD_SCHOOL_ES_INDEX", "csrankings_authors"
+)
+
 ENABLE_USER_STATUS = PersistentConfig(
     "ENABLE_USER_STATUS",
     "users.enable_status",
@@ -2259,8 +2269,8 @@ OPENSEARCH_CERT_VERIFY = (
 OPENSEARCH_USERNAME = os.environ.get("OPENSEARCH_USERNAME", None)
 OPENSEARCH_PASSWORD = os.environ.get("OPENSEARCH_PASSWORD", None)
 
-# ElasticSearch
-ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "https://localhost:9200")
+# ElasticSearch (default http for local dev; use https when your cluster has TLS)
+ELASTICSEARCH_URL = os.environ.get("ELASTICSEARCH_URL", "http://localhost:9200")
 ELASTICSEARCH_CA_CERTS = os.environ.get("ELASTICSEARCH_CA_CERTS", None)
 ELASTICSEARCH_API_KEY = os.environ.get("ELASTICSEARCH_API_KEY", None)
 ELASTICSEARCH_USERNAME = os.environ.get("ELASTICSEARCH_USERNAME", None)
@@ -2270,6 +2280,7 @@ SSL_ASSERT_FINGERPRINT = os.environ.get("SSL_ASSERT_FINGERPRINT", None)
 ELASTICSEARCH_INDEX_PREFIX = os.environ.get(
     "ELASTICSEARCH_INDEX_PREFIX", "open_webui_collections"
 )
+
 # Pgvector
 PGVECTOR_DB_URL = os.environ.get("PGVECTOR_DB_URL", DATABASE_URL)
 if VECTOR_DB == "pgvector" and not PGVECTOR_DB_URL.startswith("postgres"):

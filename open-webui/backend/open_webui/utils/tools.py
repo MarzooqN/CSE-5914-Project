@@ -72,6 +72,10 @@ from open_webui.tools.builtin import (
     search_knowledge_files,
     query_knowledge_files,
     view_knowledge_file,
+    list_faculty_by_area_and_school,
+    list_top_programs_by_area,
+    get_program_deadlines,
+    filter_programs_by_deadline_and_degree,
 )
 
 import copy
@@ -463,6 +467,17 @@ def get_builtin_tools(
                 search_channel_messages,
                 view_channel_thread,
                 view_channel_message,
+            ]
+        )
+
+    # Grad-school discovery tools (faculty + programs; deadlines TO-DO)
+    if getattr(request.app.state.config, "ENABLE_GRAD_SCHOOL_TOOLS", False):
+        builtin_functions.extend(
+            [
+                list_faculty_by_area_and_school,
+                list_top_programs_by_area,
+                get_program_deadlines,
+                filter_programs_by_deadline_and_degree,
             ]
         )
 

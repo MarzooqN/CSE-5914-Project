@@ -369,6 +369,7 @@ from open_webui.config import (
     FOLDER_MAX_FILE_COUNT,
     ENABLE_CHANNELS,
     ENABLE_NOTES,
+    ENABLE_GRAD_SCHOOL_TOOLS,
     ENABLE_USER_STATUS,
     ENABLE_COMMUNITY_SHARING,
     ENABLE_MESSAGE_RATING,
@@ -799,6 +800,14 @@ app.state.config.FOLDER_MAX_FILE_COUNT = FOLDER_MAX_FILE_COUNT
 app.state.config.ENABLE_CHANNELS = ENABLE_CHANNELS
 app.state.config.ENABLE_NOTES = ENABLE_NOTES
 app.state.config.ENABLE_COMMUNITY_SHARING = ENABLE_COMMUNITY_SHARING
+
+########################################
+#
+# GRAD-SCHOOL DISCOVERY ASSISTANT
+#
+########################################
+
+app.state.config.ENABLE_GRAD_SCHOOL_TOOLS = ENABLE_GRAD_SCHOOL_TOOLS
 app.state.config.ENABLE_MESSAGE_RATING = ENABLE_MESSAGE_RATING
 app.state.config.ENABLE_USER_WEBHOOKS = ENABLE_USER_WEBHOOKS
 app.state.config.ENABLE_USER_STATUS = ENABLE_USER_STATUS
@@ -1634,6 +1643,21 @@ async def chat_completion(
         if model_info_params.get("reasoning_tags") is not None:
             reasoning_tags = model_info_params.get("reasoning_tags")
 
+        # Use native function calling when explicitly set, or by default for OpenAI
+        # models (they support tools; without this, grad-school and other builtin
+        # tools are never sent and the model cannot call them).
+        form_params = form_data.get("params", {})
+        function_calling_param = form_params.get("function_calling")
+        if (
+            function_calling_param is None
+            and form_data.get("model") in getattr(request.app.state, "OPENAI_MODELS", {})
+        ):
+            function_calling_param = "native"
+        use_native_function_calling = (
+            function_calling_param == "native"
+            or model_info_params.get("function_calling") == "native"
+        )
+
         metadata = {
             "user_id": user.id,
             "chat_id": form_data.pop("chat_id", None),
@@ -1652,14 +1676,7 @@ async def chat_completion(
             "params": {
                 "stream_delta_chunk_size": stream_delta_chunk_size,
                 "reasoning_tags": reasoning_tags,
-                "function_calling": (
-                    "native"
-                    if (
-                        form_data.get("params", {}).get("function_calling") == "native"
-                        or model_info_params.get("function_calling") == "native"
-                    )
-                    else "default"
-                ),
+                "function_calling": "native" if use_native_function_calling else "default",
             },
         }
 
@@ -1937,6 +1954,7 @@ async def get_app_config(request: Request):
                     "folder_max_file_count": app.state.config.FOLDER_MAX_FILE_COUNT,
                     "enable_channels": app.state.config.ENABLE_CHANNELS,
                     "enable_notes": app.state.config.ENABLE_NOTES,
+                    "enable_grad_school_tools": app.state.config.ENABLE_GRAD_SCHOOL_TOOLS,
                     "enable_web_search": app.state.config.ENABLE_WEB_SEARCH,
                     "enable_code_execution": app.state.config.ENABLE_CODE_EXECUTION,
                     "enable_code_interpreter": app.state.config.ENABLE_CODE_INTERPRETER,

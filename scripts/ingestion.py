@@ -20,8 +20,15 @@ What this script does
 Requirements
   pip install elasticsearch requests
 
+
+Environment Variables (put these in a .env file)
+  ES_URL="http://localhost:9200"
+  ES_API_KEY="<api_key>"
+
+
 Run (local ES)
   export ES_URL="http://localhost:9200"
+  export ES_API_KEY="<api_key>"
   python ingestion.py --create-index --index csrankings_authors
 
 Run (Elastic Cloud)
@@ -46,6 +53,9 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import requests
 
@@ -590,7 +600,7 @@ def main() -> None:
 
     # ES mode
     ensure_es_available()
-    es = Elasticsearch(args.es_url, api_key=args.es_api_key) if args.es_api_key else Elasticsearch(args.es_url)
+    es = Elasticsearch(args.es_url, api_key=args.es_api_key)
 
     if args.create_index:
         mapping = make_index_mapping(KNOWN_PARENT_AREAS)

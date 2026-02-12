@@ -210,6 +210,8 @@ WEBUI_BUILD_HASH = os.environ.get("WEBUI_BUILD_HASH", "dev-build")
 ####################################
 
 DATA_DIR = Path(os.getenv("DATA_DIR", BACKEND_DIR / "data")).resolve()
+# Ensure data directory exists so SQLite and migrations can run on fresh clone (data/ is gitignored)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 if FROM_INIT_PY:
     NEW_DATA_DIR = Path(os.getenv("DATA_DIR", OPEN_WEBUI_DIR / "data")).resolve()

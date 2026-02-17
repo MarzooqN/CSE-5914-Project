@@ -1,0 +1,319 @@
+#!/usr/bin/env python3
+"""
+Grad Program Deadlines -> Elasticsearch ingestion
+
+This script creates and populates the grad_program_deadlines index with
+example deadline data for testing the filter_programs_by_deadline_and_degree tool.
+
+Requirements:
+  pip install elasticsearch python-dotenv
+
+Environment Variables (put these in a .env file):
+  ES_URL="http://localhost:9200"
+  ES_API_KEY="<api_key>"
+
+Run:
+  python ingest_deadlines.py --create-index
+
+Dry run (no ES needed):
+  python scripts/ingest_deadlines.py --dry-run
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+from typing import Any, Dict, List
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Elasticsearch is optional for dry-run
+try:
+    from elasticsearch import Elasticsearch, helpers
+except ImportError:
+    Elasticsearch = None
+    helpers = None
+
+
+# ----------------------------
+# Example deadline data
+# ----------------------------
+
+EXAMPLE_DEADLINES: List[Dict[str, Any]] = [
+    {
+        "professor_name": "John Smith",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2025-12-15",
+        "url": "https://cse.osu.edu/people/smith.1234",
+    },
+    {
+        "professor_name": "Sarah Johnson",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2025-12-15",
+        "url": "https://cse.osu.edu/people/johnson.5678",
+    },
+    {
+        "professor_name": "Michael Chen",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2026-01-10",
+        "url": "https://cse.osu.edu/people/mchen",
+    },
+    {
+        "professor_name": "Emily Davis",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2025-11-30",
+        "url": "https://cse.osu.edu/people/edavis",
+    },
+    {
+        "professor_name": "Robert Wilson",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2026-02-01",
+        "url": "https://cse.osu.edu/people/rwilson",
+    },
+    {
+        "professor_name": "Lisa Zhang",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2025-12-08",
+        "url": "https://cse.osu.edu/people/lzhang",
+    },
+    {
+        "professor_name": "David Brown",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2026-01-15",
+        "url": "https://cse.osu.edu/people/dbrown",
+    },
+    {
+        "professor_name": "Jennifer Lee",
+        "school": "Ohio State University",
+
+        "degree_level": "phd",
+        "deadline_date": "2026-03-01",
+        "url": "https://cse.osu.edu/people/jlee",
+    },
+    {
+        "professor_name": "James Taylor",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-02-15",
+        "url": "https://cse.osu.edu/people/jtaylor",
+    },
+    {
+        "professor_name": "Maria Garcia",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-03-15",
+        "url": "https://cse.osu.edu/people/mgarcia",
+    },
+    {
+        "professor_name": "Kevin Park",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-04-01",
+        "url": "https://cse.osu.edu/people/kpark",
+    },
+    {
+        "professor_name": "Anna Kowalski",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-01-31",
+        "url": "https://cse.osu.edu/people/akowalski",
+    },
+    {
+        "professor_name": "Chris Martinez",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-05-01",
+        "url": "https://cse.osu.edu/people/cmartinez",
+    },
+    {
+        "professor_name": "Rachel Kim",
+        "school": "Ohio State University",
+
+        "degree_level": "ms",
+        "deadline_date": "2026-03-01",
+        "url": "https://cse.osu.edu/people/rkim",
+    },
+]
+
+
+def make_index_mapping() -> Dict[str, Any]:
+    """Create the Elasticsearch index mapping for grad program deadlines."""
+    return {
+        "settings": {
+            "analysis": {
+                "normalizer": {
+                    "lowercase_normalizer": {
+                        "type": "custom",
+                        "filter": ["lowercase", "asciifolding"],
+                    }
+                }
+            }
+        },
+        "mappings": {
+            "dynamic": False,
+            "properties": {
+                "professor_name": {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword",
+                            "normalizer": "lowercase_normalizer",
+                        }
+                    },
+                },
+                "school": {
+                    "type": "text",
+                    "fields": {
+                        "keyword": {
+                            "type": "keyword",
+                            "normalizer": "lowercase_normalizer",
+                        }
+                    },
+                },
+                "degree_level": {
+                    "type": "keyword",
+                },
+                "deadline_date": {
+                    "type": "date",
+                    "format": "yyyy-MM-dd",
+                },
+                "url": {
+                    "type": "keyword",
+                },
+            },
+        },
+    }
+
+
+def get_es_client(es_url: str, api_key: str) -> Any:
+    """Build Elasticsearch client."""
+    if Elasticsearch is None:
+        raise RuntimeError("elasticsearch package not installed. Run: pip install elasticsearch")
+
+    kwargs = {"hosts": [es_url]}
+    if api_key:
+        kwargs["api_key"] = api_key
+    return Elasticsearch(**kwargs)
+
+
+def create_index(es: Any, index: str) -> None:
+    """Create the deadline index with mapping."""
+    if es.indices.exists(index=index):
+        print(f"Index '{index}' already exists. Deleting and recreating...")
+        es.indices.delete(index=index)
+
+    mapping = make_index_mapping()
+    es.indices.create(index=index, body=mapping)
+    print(f"Created index '{index}' with mapping.")
+
+
+def bulk_index_deadlines(es: Any, index: str, deadlines: List[Dict[str, Any]]) -> tuple:
+    """Bulk index deadline documents."""
+    if helpers is None:
+        raise RuntimeError("elasticsearch helpers not available")
+
+    actions = [
+        {
+            "_op_type": "index",
+            "_index": index,
+            "_id": f"{d['professor_name']}_{d['school']}_{d['degree_level']}".replace(" ", "_").lower(),
+            "_source": d,
+        }
+        for d in deadlines
+    ]
+
+    success = 0
+    failed = 0
+    for ok, _ in helpers.streaming_bulk(es, actions, chunk_size=100, request_timeout=60):
+        if ok:
+            success += 1
+        else:
+            failed += 1
+
+    return success, failed
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Ingest grad program deadlines into Elasticsearch")
+    parser.add_argument("--es-url", default=os.getenv("ES_URL", "http://localhost:9200"),
+                        help="Elasticsearch URL")
+    parser.add_argument("--es-api-key", default=os.getenv("ES_API_KEY", ""),
+                        help="Elasticsearch API key")
+    parser.add_argument("--index", default=os.getenv("GRAD_SCHOOL_DEADLINES_ES_INDEX", "grad_program_deadlines"),
+                        help="Index name (default: grad_program_deadlines)")
+    parser.add_argument("--create-index", action="store_true",
+                        help="Create/recreate the index before ingesting")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Print documents without indexing")
+
+    args = parser.parse_args()
+
+    print(f"Deadline ingestion script")
+    print(f"  ES URL: {args.es_url}")
+    print(f"  Index: {args.index}")
+    print(f"  Documents: {len(EXAMPLE_DEADLINES)}")
+    print()
+
+    if args.dry_run:
+        print("=== DRY RUN MODE ===")
+        print()
+        for d in EXAMPLE_DEADLINES:
+            print(f"  Professor: {d['professor_name']}")
+            print(f"  School: {d['school']}")
+            print(f"  Degree: {d['degree_level']}")
+            print(f"  Deadline: {d['deadline_date']}")
+            print(f"  URL: {d['url']}")
+            print()
+
+        print(f"Total: {len(EXAMPLE_DEADLINES)} documents")
+        return
+
+    # Connect to Elasticsearch
+    es = get_es_client(args.es_url, args.es_api_key)
+
+    # Verify connection
+    if not es.ping():
+        print("ERROR: Could not connect to Elasticsearch")
+        return
+    print("Connected to Elasticsearch")
+
+    # Create index if requested
+    if args.create_index:
+        create_index(es, args.index)
+
+    # Bulk index documents
+    print(f"Indexing {len(EXAMPLE_DEADLINES)} deadline documents...")
+    success, failed = bulk_index_deadlines(es, args.index, EXAMPLE_DEADLINES)
+
+    print(f"Indexing complete: {success} succeeded, {failed} failed")
+
+    # Refresh index
+    es.indices.refresh(index=args.index)
+
+    # Show count
+    count = es.count(index=args.index)["count"]
+    print(f"Total documents in index: {count}")
+
+
+if __name__ == "__main__":
+    main()

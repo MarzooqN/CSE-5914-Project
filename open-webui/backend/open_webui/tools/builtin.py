@@ -1791,7 +1791,7 @@ async def get_program_deadlines(
 
 
 async def filter_programs_by_deadline_and_degree(
-    degree_level: str,
+    degree_level: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     count: int = 20,
@@ -1799,16 +1799,40 @@ async def filter_programs_by_deadline_and_degree(
     __user__: dict = None,
 ) -> str:
     """
-    Filter programs by degree level (MS vs PhD) and deadline date range.
-    TO-DO: Implement once deadline index and ingestion are available.
+    Filter programs by degree level (PhD or MS) and/or deadline date range.
+    Use this to answer questions like "Show me PhD programs with deadlines in December"
+    or "Which MS programs have application deadlines coming up?"
 
-    :param degree_level: "phd" or "ms"
+    :param degree_level: Degree level to filter by: "phd" or "ms"
     :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
-    :param count: Maximum number of programs to return (default: 20)
-    :return: JSON list of programs with deadlines in the given range
+    :param count: Maximum number of results to return (default: 20)
+    :return: JSON list with professor_name, school, degree_level, deadline_date, url
     """
-    # TO-DO: Query grad_program_deadlines index with range + degree_level filter
-    return json.dumps(
-        {"error": "Filter by deadline/degree is not implemented yet (TO-DO). Use list_top_programs_by_area for now."}
+    log.info(
+        "grad_school tool called: filter_programs_by_deadline_and_degree(degree_level=%r, start_date=%r, end_date=%r, count=%s)",
+        degree_level, start_date, end_date, count
     )
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        from open_webui.utils.grad_school import query_programs_by_deadline
+
+        results = query_programs_by_deadline(
+            degree_level=degree_level,
+            start_date=start_date,
+            end_date=end_date,
+            limit=count,
+        )
+
+        if not results:
+            return json.dumps({
+                "message": "No programs found matching the criteria.",
+                "results": []
+            })
+
+        return json.dumps({"results": results}, ensure_ascii=False)
+    except Exception as e:
+        log.exception(f"filter_programs_by_deadline_and_degree error: {e}")
+        return json.dumps({"error": str(e)})

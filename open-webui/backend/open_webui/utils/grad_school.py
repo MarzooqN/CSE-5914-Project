@@ -14,6 +14,7 @@ from open_webui.config import (
     ELASTICSEARCH_URL,
     ELASTICSEARCH_USERNAME,
     GRAD_SCHOOL_ES_INDEX,
+    GRAD_SCHOOL_DEADLINES_ES_INDEX,
 )
 
 log = logging.getLogger(__name__)
@@ -233,3 +234,73 @@ def rank_programs_by_area(
         {"dept": b["key"], "score": b.get("total", {}).get("value", 0)}
         for b in buckets
     ]
+
+
+def query_programs_by_deadline(
+    degree_level: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    limit: int = 20,
+) -> list[dict[str, Any]]:
+    """
+    Filter programs by degree level and/or deadline date range.
+    Queries the grad_program_deadlines index.
+
+    Expected index document schema:
+    - professor_name: text/keyword (name of the professor)
+    - school: text/keyword (university name)
+    - degree_level: keyword ("phd" or "ms")
+    - deadline_date: date (ISO format, e.g. "2025-12-15")
+    - url: keyword (link to professor/program page)
+
+    :param degree_level: Degree level to filter by ("phd" or "ms")
+    :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
+    :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
+    :param limit: Maximum number of results to return
+    :return: List of dicts with professor_name, school, degree_level, deadline_date, url
+    """
+    es = _get_es_client()
+    index = GRAD_SCHOOL_DEADLINES_ES_INDEX
+
+    # Build bool filter
+    must = []
+
+    # Add degree level filter if provided
+    if degree_level:
+        must.append({"term": {"degree_level": degree_level.strip().lower()}})
+
+    # Add date range filter if provided
+    if start_date or end_date:
+        date_range = {}
+        if start_date:
+            date_range["gte"] = start_date
+        if end_date:
+            date_range["lte"] = end_date
+        must.append({"range": {"deadline_date": date_range}})
+
+    # If no filters, match all
+    if must:
+        query = {"query": {"bool": {"must": must}}, "size": limit}
+    else:
+        query = {"query": {"match_all": {}}, "size": limit}
+
+    query["_source"] = ["professor_name", "school", "degree_level", "deadline_date", "url"]
+    query["sort"] = [{"deadline_date": "asc"}]
+
+    try:
+        resp = es.search(index=index, body=query)
+    except Exception as e:
+        log.exception("grad_school query_programs_by_deadline: %s", e)
+        return []
+
+    out = []
+    for hit in resp.get("hits", {}).get("hits", []):
+        src = hit.get("_source", {})
+        out.append({
+            "professor_name": src.get("professor_name", ""),
+            "school": src.get("school", ""),
+            "degree_level": src.get("degree_level", ""),
+            "deadline_date": src.get("deadline_date", ""),
+            "url": src.get("url", ""),
+        })
+    return out

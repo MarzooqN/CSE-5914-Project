@@ -1583,6 +1583,9 @@ ENABLE_GRAD_SCHOOL_TOOLS = PersistentConfig(
 GRAD_SCHOOL_ES_INDEX = os.environ.get(
     "GRAD_SCHOOL_ES_INDEX", "csrankings_authors"
 )
+GRAD_SCHOOL_DEADLINES_ES_INDEX = os.environ.get(
+    "GRAD_SCHOOL_DEADLINES_ES_INDEX", "grad_program_deadlines"
+)
 
 ENABLE_USER_STATUS = PersistentConfig(
     "ENABLE_USER_STATUS",

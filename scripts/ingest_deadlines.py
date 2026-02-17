@@ -41,117 +41,147 @@ except ImportError:
 # ----------------------------
 
 EXAMPLE_DEADLINES: List[Dict[str, Any]] = [
+    # PhD programs — varied deadline months
     {
-        "professor_name": "John Smith",
-        "school": "Ohio State University",
-
-        "degree_level": "phd",
-        "deadline_date": "2025-12-15",
-        "url": "https://cse.osu.edu/people/smith.1234",
-    },
-    {
-        "professor_name": "Sarah Johnson",
-        "school": "Ohio State University",
-
-        "degree_level": "phd",
-        "deadline_date": "2025-12-15",
-        "url": "https://cse.osu.edu/people/johnson.5678",
-    },
-    {
-        "professor_name": "Michael Chen",
-        "school": "Ohio State University",
-
-        "degree_level": "phd",
-        "deadline_date": "2026-01-10",
-        "url": "https://cse.osu.edu/people/mchen",
-    },
-    {
-        "professor_name": "Emily Davis",
-        "school": "Ohio State University",
-
+        "school": "ohio state university",
+        "program": "Computer Science",
         "degree_level": "phd",
         "deadline_date": "2025-11-30",
-        "url": "https://cse.osu.edu/people/edavis",
+        "deadline_type": "priority",
+        "term": "Fall 2026",
+        "source_url": "https://cse.osu.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "Robert Wilson",
-        "school": "Ohio State University",
-
+        "school": "ohio state university",
+        "program": "Computer Science",
         "degree_level": "phd",
-        "deadline_date": "2026-02-01",
-        "url": "https://cse.osu.edu/people/rwilson",
+        "deadline_date": "2025-12-15",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cse.osu.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "Lisa Zhang",
-        "school": "Ohio State University",
-
+        "school": "carnegie mellon university",
+        "program": "Computer Science",
         "degree_level": "phd",
-        "deadline_date": "2025-12-08",
-        "url": "https://cse.osu.edu/people/lzhang",
+        "deadline_date": "2025-12-01",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.cmu.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "David Brown",
-        "school": "Ohio State University",
-
+        "school": "stanford university",
+        "program": "Computer Science",
+        "degree_level": "phd",
+        "deadline_date": "2025-12-05",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.stanford.edu/admissions/phd",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    {
+        "school": "university of michigan",
+        "program": "Computer Science and Engineering",
+        "degree_level": "phd",
+        "deadline_date": "2025-12-15",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cse.umich.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    {
+        "school": "university of illinois urbana-champaign",
+        "program": "Computer Science",
         "degree_level": "phd",
         "deadline_date": "2026-01-15",
-        "url": "https://cse.osu.edu/people/dbrown",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.illinois.edu/admissions/phd",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "Jennifer Lee",
-        "school": "Ohio State University",
-
+        "school": "georgia institute of technology",
+        "program": "Computer Science",
         "degree_level": "phd",
-        "deadline_date": "2026-03-01",
-        "url": "https://cse.osu.edu/people/jlee",
+        "deadline_date": "2026-02-01",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://scs.gatech.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "James Taylor",
-        "school": "Ohio State University",
-
+        "school": "university of washington",
+        "program": "Computer Science",
+        "degree_level": "phd",
+        "deadline_date": "2025-12-15",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.washington.edu/phd/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    # MS programs — later deadline months
+    {
+        "school": "ohio state university",
+        "program": "Computer Science",
         "degree_level": "ms",
         "deadline_date": "2026-02-15",
-        "url": "https://cse.osu.edu/people/jtaylor",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cse.osu.edu/ms/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "Maria Garcia",
-        "school": "Ohio State University",
-
+        "school": "carnegie mellon university",
+        "program": "Computer Science",
+        "degree_level": "ms",
+        "deadline_date": "2026-01-10",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.cmu.edu/ms/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    {
+        "school": "stanford university",
+        "program": "Computer Science",
         "degree_level": "ms",
         "deadline_date": "2026-03-15",
-        "url": "https://cse.osu.edu/people/mgarcia",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cs.stanford.edu/admissions/ms",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
     {
-        "professor_name": "Kevin Park",
-        "school": "Ohio State University",
-
-        "degree_level": "ms",
-        "deadline_date": "2026-04-01",
-        "url": "https://cse.osu.edu/people/kpark",
-    },
-    {
-        "professor_name": "Anna Kowalski",
-        "school": "Ohio State University",
-
-        "degree_level": "ms",
-        "deadline_date": "2026-01-31",
-        "url": "https://cse.osu.edu/people/akowalski",
-    },
-    {
-        "professor_name": "Chris Martinez",
-        "school": "Ohio State University",
-
-        "degree_level": "ms",
-        "deadline_date": "2026-05-01",
-        "url": "https://cse.osu.edu/people/cmartinez",
-    },
-    {
-        "professor_name": "Rachel Kim",
-        "school": "Ohio State University",
-
+        "school": "university of michigan",
+        "program": "Computer Science and Engineering",
         "degree_level": "ms",
         "deadline_date": "2026-03-01",
-        "url": "https://cse.osu.edu/people/rkim",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://cse.umich.edu/ms/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    {
+        "school": "georgia institute of technology",
+        "program": "Computer Science",
+        "degree_level": "ms",
+        "deadline_date": "2026-04-01",
+        "deadline_type": "final",
+        "term": "Fall 2026",
+        "source_url": "https://scs.gatech.edu/ms/admissions",
+        "updated_at": "2025-10-01T00:00:00Z",
+    },
+    {
+        "school": "university of illinois urbana-champaign",
+        "program": "Computer Science",
+        "degree_level": "ms",
+        "deadline_date": "2026-05-01",
+        "deadline_type": "rolling",
+        "term": "Fall 2026",
+        "source_url": "https://cs.illinois.edu/admissions/ms",
+        "updated_at": "2025-10-01T00:00:00Z",
     },
 ]
 
@@ -160,6 +190,7 @@ def make_index_mapping() -> Dict[str, Any]:
     """Create the Elasticsearch index mapping for grad program deadlines."""
     return {
         "settings": {
+            "number_of_shards": 1,
             "analysis": {
                 "normalizer": {
                     "lowercase_normalizer": {
@@ -167,21 +198,16 @@ def make_index_mapping() -> Dict[str, Any]:
                         "filter": ["lowercase", "asciifolding"],
                     }
                 }
-            }
+            },
         },
         "mappings": {
             "dynamic": False,
             "properties": {
-                "professor_name": {
-                    "type": "text",
-                    "fields": {
-                        "keyword": {
-                            "type": "keyword",
-                            "normalizer": "lowercase_normalizer",
-                        }
-                    },
-                },
                 "school": {
+                    "type": "keyword",
+                    "normalizer": "lowercase_normalizer",
+                },
+                "program": {
                     "type": "text",
                     "fields": {
                         "keyword": {
@@ -195,10 +221,21 @@ def make_index_mapping() -> Dict[str, Any]:
                 },
                 "deadline_date": {
                     "type": "date",
-                    "format": "yyyy-MM-dd",
+                    "format": "strict_date_optional_time||yyyy-MM-dd||epoch_millis",
                 },
-                "url": {
+                "deadline_type": {
                     "type": "keyword",
+                },
+                "term": {
+                    "type": "keyword",
+                },
+                "source_url": {
+                    "type": "keyword",
+                    "index": False,
+                },
+                "updated_at": {
+                    "type": "date",
+                    "format": "strict_date_optional_time||epoch_millis",
                 },
             },
         },
@@ -236,7 +273,7 @@ def bulk_index_deadlines(es: Any, index: str, deadlines: List[Dict[str, Any]]) -
         {
             "_op_type": "index",
             "_index": index,
-            "_id": f"{d['professor_name']}_{d['school']}_{d['degree_level']}".replace(" ", "_").lower(),
+            "_id": f"{d['school']}_{d['program']}_{d['degree_level']}_{d['deadline_date']}".replace(" ", "_").lower(),
             "_source": d,
         }
         for d in deadlines
@@ -278,11 +315,12 @@ def main() -> None:
         print("=== DRY RUN MODE ===")
         print()
         for d in EXAMPLE_DEADLINES:
-            print(f"  Professor: {d['professor_name']}")
             print(f"  School: {d['school']}")
+            print(f"  Program: {d['program']}")
             print(f"  Degree: {d['degree_level']}")
-            print(f"  Deadline: {d['deadline_date']}")
-            print(f"  URL: {d['url']}")
+            print(f"  Deadline: {d['deadline_date']} ({d.get('deadline_type', '')})")
+            print(f"  Term: {d.get('term', '')}")
+            print(f"  URL: {d.get('source_url', '')}")
             print()
 
         print(f"Total: {len(EXAMPLE_DEADLINES)} documents")

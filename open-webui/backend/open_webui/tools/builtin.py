@@ -1807,7 +1807,7 @@ async def filter_programs_by_deadline_and_degree(
     :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
     :param count: Maximum number of results to return (default: 20)
-    :return: JSON list with professor_name, school, degree_level, deadline_date, url
+    :return: JSON list with school, program, degree_level, deadline_date, deadline_type, term, source_url
     """
     log.info(
         "grad_school tool called: filter_programs_by_deadline_and_degree(degree_level=%r, start_date=%r, end_date=%r, count=%s)",

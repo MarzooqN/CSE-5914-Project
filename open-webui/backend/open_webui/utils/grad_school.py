@@ -247,17 +247,19 @@ def query_programs_by_deadline(
     Queries the grad_program_deadlines index.
 
     Expected index document schema:
-    - professor_name: text/keyword (name of the professor)
-    - school: text/keyword (university name)
+    - school: keyword (university name, lowercase normalized)
+    - program: text/keyword (program or department name)
     - degree_level: keyword ("phd" or "ms")
     - deadline_date: date (ISO format, e.g. "2025-12-15")
-    - url: keyword (link to professor/program page)
+    - deadline_type: keyword (e.g. "priority", "final", "rolling")
+    - term: keyword (e.g. "Fall 2026")
+    - source_url: keyword (link to program admissions page)
 
     :param degree_level: Degree level to filter by ("phd" or "ms")
     :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
     :param limit: Maximum number of results to return
-    :return: List of dicts with professor_name, school, degree_level, deadline_date, url
+    :return: List of dicts with school, program, degree_level, deadline_date, deadline_type, term, source_url
     """
     es = _get_es_client()
     index = GRAD_SCHOOL_DEADLINES_ES_INDEX
@@ -284,7 +286,7 @@ def query_programs_by_deadline(
     else:
         query = {"query": {"match_all": {}}, "size": limit}
 
-    query["_source"] = ["professor_name", "school", "degree_level", "deadline_date", "url"]
+    query["_source"] = ["school", "program", "degree_level", "deadline_date", "deadline_type", "term", "source_url"]
     query["sort"] = [{"deadline_date": "asc"}]
 
     try:
@@ -297,10 +299,12 @@ def query_programs_by_deadline(
     for hit in resp.get("hits", {}).get("hits", []):
         src = hit.get("_source", {})
         out.append({
-            "professor_name": src.get("professor_name", ""),
             "school": src.get("school", ""),
+            "program": src.get("program", ""),
             "degree_level": src.get("degree_level", ""),
             "deadline_date": src.get("deadline_date", ""),
-            "url": src.get("url", ""),
+            "deadline_type": src.get("deadline_type", ""),
+            "term": src.get("term", ""),
+            "source_url": src.get("source_url", ""),
         })
     return out

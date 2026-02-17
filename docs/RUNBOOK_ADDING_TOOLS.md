@@ -14,6 +14,7 @@ This runbook is a step-by-step, all-in-one guide for adding new tools (or implem
 6. [Adding a new tool that needs a new Elasticsearch index](#6-adding-a-new-tool-that-needs-a-new-elasticsearch-index)
 7. [Implementing an existing stub (e.g. deadlines)](#7-implementing-an-existing-stub-eg-deadlines)
 8. [Checklist for any new or updated tool](#8-checklist-for-any-new-or-updated-tool)
+9. [Deadlines index structure (reference)](#9-deadlines-index-structure-reference)
 
 ---
 
@@ -214,3 +215,125 @@ Use this to confirm nothing is missed. An AI or human can tick each item.
 | New index + ingestion | `scripts/ingestion.py` or new script under `scripts/` | New mapping, index creation, and bulk indexing; document in setup/runbook. |
 
 This runbook, together with [SETUP_INGESTION.md](SETUP_INGESTION.md) and [SETUP_OPEN_WEBUI.md](SETUP_OPEN_WEBUI.md), is intended to be sufficient for a developer or an AI to add a new tool or implement the deadlines tools end-to-end.
+
+---
+
+## 9. Deadlines index structure (reference)
+
+This section defines a recommended Elasticsearch index structure for the **deadlines** tools (`get_program_deadlines`, `filter_programs_by_deadline_and_degree`). Use it when implementing ingestion and the ES helpers.
+
+### 9.1 Document shape (one document per deadline)
+
+Model one **program deadline** per document. If a school has both a “priority” and a “final” deadline, use two documents (same `school` + `program` + `degree_level`, different `deadline_date` and/or `deadline_type`). That keeps range and filter queries simple.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `school` | keyword (normalized) | University or school name, normalized to lowercase for consistent filtering (e.g. `"carnegie mellon university"`). Match how you query in `get_program_deadlines(school=...)`. |
+| `program` | keyword or text+keyword | Program or department name (e.g. `"Computer Science"`, `"School of Computer Science"`). Use a `.keyword` subfield if you need exact match and search. |
+| `degree_level` | keyword | Either `"phd"` or `"ms"`. Used for exact filter in both tools. |
+| `deadline_date` | date | Application deadline date. Use `YYYY-MM-DD` or ISO date. **Required** for range queries (`start_date` / `end_date`). |
+| `deadline_type` | keyword (optional) | E.g. `"priority"`, `"final"`, `"international"`, `"rolling"`. Omit if you only store one deadline per (school, program, degree). |
+| `term` | keyword (optional) | Admission term (e.g. `"Fall 2026"`, `"Spring 2027"`) for display. |
+| `source_url` | keyword (optional) | URL of the program or admissions page. |
+| `updated_at` | date (optional) | When this record was last scraped or updated. |
+
+### 9.2 Recommended mapping
+
+Use a mapping that supports:
+
+- **Exact filters:** `school`, `degree_level`, and optionally `deadline_type` as `keyword`.
+- **Date range:** `deadline_date` as `date`.
+- **Display/search:** `program` as `text` with a `keyword` subfield if you need both full-text and exact (e.g. for aggregations).
+
+Example mapping (index name e.g. `grad_program_deadlines`):
+
+```json
+{
+  "settings": {
+    "number_of_shards": 1,
+    "analysis": {
+      "normalizer": {
+        "lowercase_normalizer": {
+          "type": "custom",
+          "filter": ["lowercase", "asciifolding"]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": false,
+    "properties": {
+      "school": {
+        "type": "keyword",
+        "normalizer": "lowercase_normalizer"
+      },
+      "program": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "normalizer": "lowercase_normalizer"
+          }
+        }
+      },
+      "degree_level": {
+        "type": "keyword"
+      },
+      "deadline_date": {
+        "type": "date",
+        "format": "strict_date_optional_time||yyyy-MM-dd||epoch_millis"
+      },
+      "deadline_type": {
+        "type": "keyword"
+      },
+      "term": {
+        "type": "keyword"
+      },
+      "source_url": {
+        "type": "keyword",
+        "index": false
+      },
+      "updated_at": {
+        "type": "date",
+        "format": "strict_date_optional_time||epoch_millis"
+      }
+    }
+  }
+}
+```
+
+- Use `school.keyword` or a single `keyword` with normalizer so that queries like “Carnegie Mellon University” match stored `"carnegie mellon university"` (normalize the user input the same way in the backend).
+- `deadline_date` as `date` allows range queries: `{"range": {"deadline_date": {"gte": "2026-01-01", "lte": "2026-12-31"}}}`.
+
+### 9.3 Query patterns for the two tools
+
+**get_program_deadlines(school, degree_level, start_date, end_date)**
+
+- **Filter:** `school` (term, normalized) + `degree_level` (term).
+- **Optional:** `deadline_date` range with `gte`/`lte` when `start_date`/`end_date` are provided.
+- **Sort:** e.g. `deadline_date` asc.
+- **Source:** return the fields you need for the JSON list (school, program, degree_level, deadline_date, deadline_type, term, source_url).
+
+**filter_programs_by_deadline_and_degree(degree_level, start_date, end_date, count)**
+
+- **Filter:** `degree_level` (term) + `deadline_date` range (use `start_date`/`end_date`; if either is missing, omit or use a very wide range).
+- **Sort:** e.g. `deadline_date` asc.
+- **Size:** `count`.
+- **Source:** same as above; result is “programs (across any school) with deadlines in range”.
+
+### 9.4 Example document
+
+```json
+{
+  "school": "carnegie mellon university",
+  "program": "Computer Science",
+  "degree_level": "phd",
+  "deadline_date": "2025-12-15",
+  "deadline_type": "final",
+  "term": "Fall 2026",
+  "source_url": "https://cs.cmu.edu/phd/admissions",
+  "updated_at": "2025-10-01T00:00:00Z"
+}
+```
+
+When you implement the deadlines ingestion script, create the index with this mapping (or the same structure in Python), bulk-index documents in this shape, and in `grad_school.py` (or your ES helper module) use `_get_es_client()` and the deadlines index name from config to run the query patterns above.

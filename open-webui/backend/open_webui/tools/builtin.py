@@ -1812,3 +1812,50 @@ async def filter_programs_by_deadline_and_degree(
     return json.dumps(
         {"error": "Filter by deadline/degree is not implemented yet (TO-DO). Use list_top_programs_by_area for now."}
     )
+
+
+# =============================================================================
+# RESUME CHECKER
+# =============================================================================
+
+async def check_resume_fit(
+    research_area: str,
+    resume_text: str,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Evaluate how well a student's resume matches a target graduate research area or speciality.
+    Use this when a user pastes their resume and asks how well they fit a research area,
+    faculty lab, or program speciality (e.g. NLP, security, systems, machine learning).
+
+    :param research_area: The research area or speciality to evaluate fit for (e.g. "NLP", "systems security", "machine learning")
+    :param resume_text: The full plain-text content of the student's resume
+    :return: JSON object with an overall fit score (0-100), a letter grade, per-category scores, matched keywords, missing keywords, and a short summary
+    """
+    log.info(
+        "grad_school tool called: check_resume_fit(research_area=%r, resume_len=%d)",
+        research_area,
+        len(resume_text),
+    )
+
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    if not resume_text or not resume_text.strip():
+        return json.dumps({"error": "resume_text is empty. Please paste the text of your resume."})
+
+    if not research_area or not research_area.strip():
+        return json.dumps({"error": "research_area is required. Please specify a research area (e.g. NLP, systems, security)."})
+
+    try:
+        from open_webui.utils.grad_school import score_resume_for_area
+
+        result = score_resume_for_area(
+            resume_text=resume_text.strip(),
+            research_area=research_area.strip(),
+        )
+        return json.dumps(result, ensure_ascii=False)
+    except Exception as e:
+        log.exception("check_resume_fit error: %s", e)
+        return json.dumps({"error": f"Failed to evaluate resume: {str(e)}"})

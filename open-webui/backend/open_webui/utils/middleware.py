@@ -928,6 +928,211 @@ def get_images_from_messages(message_list):
 
     return images
 
+async def chat_resume_fit_handler(request: Request, form_data: dict, user) -> dict:
+    """
+    Detect if the user is asking for a resume fit evaluation.
+    Extracts resume text from:
+      1. Uploaded file content (PDF/text attachment via metadata files)
+      2. The user message itself (if they pasted text inline)
+    Injects the score result into the system prompt so any model
+    (including Ollama) can format it for the user.
+    """
+    user_message = get_last_user_message(form_data.get("messages", []))
+    if not user_message:
+        return form_data
+
+    msg_lower = user_message.lower()
+
+    # Only trigger if the message looks like a resume fit request
+    fit_triggers = ["fit", "match", "suit", "good for", "qualify", "competitive", "how well", "score"]
+    area_triggers = [
+        "nlp", "natural language", "machine learning", "security", "systems",
+        "computer vision", "robotics", "theory", "database", "networking",
+        "architecture", "hpc", "research", "phd", "graduate",
+    ]
+
+    has_resume_word = any(t in msg_lower for t in ["resume", "cv", "curriculum vitae"])
+    has_fit = any(t in msg_lower for t in fit_triggers)
+    has_area = any(t in msg_lower for t in area_triggers)
+
+    # Must mention resume AND (fit intent OR area)
+    if not (has_resume_word and (has_fit or has_area)):
+        return form_data
+
+    # ---- Detect research area from the message ----
+    area_map = {
+        # AI
+        "artificial intelligence": "ai",
+        "computer vision": "vision",
+        "machine learning": "mlmining",
+        "deep learning": "mlmining",
+        "natural language processing": "nlp",
+        "nlp": "nlp",
+        "web and information retrieval": "inforet",
+        "information retrieval": "inforet",
+        "the web": "inforet",
+
+        # Systems
+        "computer architecture": "arch",
+        "computer networks": "comm",
+        "networking": "comm",
+        "networks": "comm",
+        "computer security": "sec",
+        "cybersecurity": "sec",
+        "security": "sec",
+        "databases": "mod",
+        "database": "mod",
+        "design automation": "da",
+        "embedded systems": "bed",
+        "real-time systems": "bed",
+        "high-performance computing": "hpc",
+        "hpc": "hpc",
+        "mobile computing": "mobile",
+        "measurement": "metrics",
+        "performance analysis": "metrics",
+        "operating systems": "ops",
+        "systems": "ops",
+        "programming languages": "plan",
+        "software engineering": "soft",
+
+        # Theory
+        "algorithms": "act",
+        "algorithms and complexity": "act",
+        "complexity": "act",
+        "cryptography": "crypt",
+        "logic": "log",
+        "logic and verification": "log",
+        "verification": "log",
+
+        # Interdisciplinary
+        "bioinformatics": "bio",
+        "computational biology": "bio",
+        "computer graphics": "graph",
+        "graphics": "graph",
+        "cs education": "csed",
+        "computer science education": "csed",
+        "economics and computation": "ecom",
+        "human-computer interaction": "chi",
+        "hci": "chi",
+        "robotics": "robotics",
+        "visualization": "visualization",
+    }
+
+    detected_area = None
+    for phrase, area_key in sorted(area_map.items(), key=lambda x: -len(x[0])):
+        if phrase in msg_lower:
+            detected_area = area_key
+            break
+
+    if not detected_area:
+        return form_data
+
+    # ---- Extract resume text ----
+    # Priority 1: text extracted from uploaded files in metadata
+    resume_text = ""
+    try:
+        files = form_data.get("metadata", {}).get("files") or []
+        if not files:
+            # files may not have been moved to metadata yet at this point
+            files = form_data.get("files") or []
+
+        for file_item in files:
+            # Each file item may have inline docs or a collection_name
+            docs = file_item.get("docs", [])
+            for doc in docs:
+                page_content = doc.get("page_content", "")
+                if page_content:
+                    resume_text += page_content + "\n"
+
+            # Also try the content field directly
+            content = file_item.get("content", "")
+            if content:
+                resume_text += content + "\n"
+    except Exception as e:
+        log.debug("chat_resume_fit_handler: error reading file context: %s", e)
+
+    # Priority 2: try fetching file content from the Files DB if we have file IDs
+    if not resume_text.strip():
+        try:
+            files = form_data.get("metadata", {}).get("files") or form_data.get("files") or []
+            for file_item in files:
+                file_id = file_item.get("id")
+                if file_id:
+                    from open_webui.models.files import Files
+                    db_file = Files.get_file_by_id(file_id)
+                    if db_file and db_file.data:
+                        content = db_file.data.get("content", "")
+                        if content:
+                            resume_text += content + "\n"
+        except Exception as e:
+            log.debug("chat_resume_fit_handler: error reading Files DB: %s", e)
+
+    # Priority 3: fall back to the user message text itself (pasted resume)
+    if not resume_text.strip():
+        # Only use the message if it's long enough to be a resume (> 200 chars)
+        if len(user_message) > 200:
+            resume_text = user_message
+        else:
+            # Message is too short — likely just "here is my resume" with an attachment
+            # We can't score without content, so skip
+            log.info("chat_resume_fit_handler: no resume text found, skipping")
+            return form_data
+
+    # ---- Score the resume ----
+    try:
+        from open_webui.utils.grad_school import score_resume_for_area
+
+        result = score_resume_for_area(
+            resume_text=resume_text.strip(),
+            research_area=detected_area,
+        )
+
+        overall = result["overall_score"]
+        grade = result["letter_grade"]
+        area = result["research_area"]
+        matched = result["matched_keywords"]
+        missing = result["missing_keywords"]
+        a = result["category_scores"]["area_keywords"]
+        r = result["category_scores"]["research_experience"]
+        c = result["category_scores"]["coding_and_tools"]
+
+        strength = "strong" if a["score"] >= 35 else "moderate" if a["score"] >= 20 else "limited"
+        research_str = (
+            "solid research background" if r["score"] >= 20
+            else "some research exposure" if r["score"] >= 10
+            else "little research experience highlighted"
+        )
+
+        score_context = f"""<resume_fit_analysis>
+SYSTEM OVERRIDE: Before writing anything else, you MUST copy and display this score report exactly as shown below. Do not skip it, summarize it, or rewrite it. Show the numbers first, then add your own analysis after.
+
+**Resume Fit Score Report**
+Overall Score: {overall}/100  |  Letter Grade: {grade}
+
+Score Breakdown:
+- Area keyword match: {a['score']}/{a['max']} ({a['matched']} of {a['total']} keywords matched)
+- Research experience signals: {r['score']}/{r['max']} ({r['matched']} of {r['total']} signals found)
+- Coding and tools: {c['score']}/{c['max']} ({c['matched']} of {c['total']} tools found)
+
+Matched Keywords: {', '.join(matched) if matched else 'None'}
+Top Missing Keywords: {', '.join(missing[:5]) if missing else 'None'}
+Alignment: {strength} alignment, {research_str}.
+</resume_fit_analysis>
+
+Start your response with the score report above, formatted with markdown bold headers. Then add commentary."""
+        form_data["messages"] = add_or_update_system_message(
+            score_context, form_data["messages"], append=True
+        )
+
+        log.info(
+            "chat_resume_fit_handler: injected score %d/%s for area=%r (resume_len=%d)",
+            overall, grade, area, len(resume_text),
+        )
+
+    except Exception as e:
+        log.exception("chat_resume_fit_handler error: %s", e)
+
+    return form_data
 
 def get_image_urls(delta_images, request, metadata, user) -> list[str]:
     if not isinstance(delta_images, list):
@@ -1599,6 +1804,9 @@ async def process_chat_payload(request, form_data, user, metadata, model):
                 form_data["messages"],
             )
 
+    # Resume fit injection — works with any model including Ollama
+    form_data = await chat_resume_fit_handler(request, form_data, user)
+    
     tool_ids = form_data.pop("tool_ids", None)
     files = form_data.pop("files", None)
 

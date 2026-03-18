@@ -1,2 +1,10 @@
 .env
 venv/
+.venv
+.vscode/
+.DS_Store
+.env
+.env.*
+!.env.example
+.vscode/settings.json
+elastic-start-local/

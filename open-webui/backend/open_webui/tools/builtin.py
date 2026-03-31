@@ -1767,7 +1767,7 @@ async def list_top_programs_by_area(
 
 
 async def get_program_deadlines(
-    school: str,
+     school: str,
     degree_level: str = "phd",
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -1784,9 +1784,33 @@ async def get_program_deadlines(
     :param end_date: Optional filter: only deadlines on or before this date (YYYY-MM-DD)
     :return: JSON list of program deadlines
     """
-    # TO-DO: Query grad_program_deadlines (or similar) index; return structured list
-    return json.dumps(
-        {"error": "Deadline lookup is not implemented yet (TO-DO). Use list_top_programs_by_area and list_faculty_by_area_and_school for now."}
+    log.info(
+        "grad_school tool called: get_program_deadlines(school=%r, degree_level=%r, start_date=%r, end_date=%r)",
+        school, degree_level, start_date, end_date,
+    )
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        from open_webui.utils.grad_school import query_programs_by_deadline
+
+        results = query_programs_by_deadline(
+            school=school,
+            degree_level=degree_level,
+            start_date=start_date,
+            end_date=end_date,
+        )
+
+        if not results:
+            return json.dumps({
+                "message": f"No deadline information found for {school!r} ({degree_level.upper()}).",
+                "results": [],
+            })
+
+        return json.dumps({"results": results}, ensure_ascii=False)
+    except Exception as e:
+        log.exception(f"get_program_deadlines error: {e}")
+        return json.dumps({"error": str(e)}
     )
 
 

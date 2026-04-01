@@ -11,7 +11,7 @@ import logging
 import time
 import asyncio
 from typing import Optional
-
+from open_webui.utils import grad_school
 from fastapi import Request
 
 from open_webui.models.users import UserModel
@@ -1928,3 +1928,68 @@ async def check_resume_fit(
     except Exception as e:
         log.exception("check_resume_fit error: %s", e)
         return json.dumps({"error": f"Failed to evaluate resume: {str(e)}"})
+
+
+async def get_usnews_school_ranking(
+    school: str,
+    year: int,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Get a school's US News National University ranking for a specific year.
+    Use this to answer questions like "What was Princeton ranked in 2026?"
+
+    :param school: University name (e.g. "Princeton University")
+    :param year: Year (e.g. 2026)
+    :return: JSON object with school, year, rank, and related metadata
+    """
+    log.info(
+        "grad_school tool called: get_usnews_school_ranking(school=%r, year=%r)",
+        school,
+        year,
+    )
+
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        result = grad_school.get_usnews_ranking_for_school_year(school, year)
+        if not result:
+            return json.dumps(
+                {"error": f"No ranking found for {school} in {year}"},
+                ensure_ascii=False,
+            )
+        return json.dumps(result, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+async def get_usnews_top_schools(
+    year: int,
+    count: int = 20,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Get the top N US News National University rankings for a given year.
+    Use this to answer questions like "What are the top 10 universities in 2026?"
+
+    :param year: Year (e.g. 2026)
+    :param count: Number of schools to return (default: 20)
+    :return: JSON list of ranked schools for that year
+    """
+    log.info(
+        "grad_school tool called: get_usnews_top_schools(year=%r, count=%r)",
+        year,
+        count,
+    )
+
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        result = grad_school.get_usnews_top_schools(year, count=count)
+        return json.dumps(result, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)

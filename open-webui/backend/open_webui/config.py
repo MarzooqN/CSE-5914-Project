@@ -1587,6 +1587,11 @@ GRAD_SCHOOL_DEADLINES_ES_INDEX = os.environ.get(
     "GRAD_SCHOOL_DEADLINES_ES_INDEX", "grad_program_deadlines"
 )
 
+GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX = os.environ.get(
+    "GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX",
+    "usnews_rankings",
+)
+
 ENABLE_USER_STATUS = PersistentConfig(
     "ENABLE_USER_STATUS",
     "users.enable_status",

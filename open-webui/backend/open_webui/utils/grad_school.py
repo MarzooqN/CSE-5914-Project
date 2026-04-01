@@ -16,6 +16,7 @@ from open_webui.config import (
     ELASTICSEARCH_USERNAME,
     GRAD_SCHOOL_ES_INDEX,
     GRAD_SCHOOL_DEADLINES_ES_INDEX,
+    GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX,
 )
 from open_webui.utils.WebRequest import UNIVERSITY_ALIASES
 
@@ -275,7 +276,6 @@ def rank_programs_by_area(
         {"dept": b["key"], "score": b.get("total", {}).get("value", 0)}
         for b in buckets
     ]
-
 
 def query_programs_by_deadline(
     school: Optional[str] = None,
@@ -725,3 +725,59 @@ def score_resume_for_area(resume_text: str, research_area: str) -> dict:
         "missing_keywords": top_missing,
         "summary": summary,
     }
+
+
+def get_usnews_ranking_for_school_year(school: str, year: int):
+    es = _get_es_client()
+    index = GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX
+
+    school_norm = (school or "").strip().lower()
+
+    query = {
+        "size": 1,
+        "query": {
+            "bool": {
+                "filter": [
+                    {"term": {"school": school_norm}},
+                    {"term": {"year": int(year)}},
+                ]
+            }
+        },
+        "_source": [
+            "display_school",
+            "school",
+            "state",
+            "ipeds",
+            "year",
+            "rank",
+            "rank_source",
+            "updated_at",
+        ],
+    }
+
+    resp = es.search(index=index, body=query)
+    hits = resp.get("hits", {}).get("hits", [])
+    return hits[0]["_source"] if hits else None
+
+
+def get_usnews_top_schools(year: int, count: int = 20):
+    es = _get_es_client()
+    index = GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX
+
+    query = {
+        "size": max(1, min(int(count), 200)),
+        "query": {"term": {"year": int(year)}},
+        "sort": [{"rank": {"order": "asc"}}],
+        "_source": [
+            "display_school",
+            "school",
+            "state",
+            "ipeds",
+            "year",
+            "rank",
+        ],
+    }
+
+    resp = es.search(index=index, body=query)
+    hits = resp.get("hits", {}).get("hits", [])
+    return [h["_source"] for h in hits]

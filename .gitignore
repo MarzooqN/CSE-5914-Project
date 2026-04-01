@@ -8,3 +8,4 @@ venv/
 !.env.example
 .vscode/settings.json
 elastic-start-local/
+data_local/

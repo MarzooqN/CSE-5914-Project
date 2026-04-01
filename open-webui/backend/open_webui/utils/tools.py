@@ -76,7 +76,9 @@ from open_webui.tools.builtin import (
     list_top_programs_by_area,
     get_program_deadlines,
     filter_programs_by_deadline_and_degree,
-    check_resume_fit
+    check_resume_fit,
+    get_usnews_school_ranking,
+    get_usnews_top_schools,
 )
 
 import copy
@@ -479,7 +481,9 @@ def get_builtin_tools(
                 list_top_programs_by_area,
                 get_program_deadlines,
                 filter_programs_by_deadline_and_degree,
-                check_resume_fit
+                check_resume_fit,
+                get_usnews_school_ranking,
+                get_usnews_top_schools,
             ]
         )
 

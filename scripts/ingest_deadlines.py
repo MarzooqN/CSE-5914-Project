@@ -24,6 +24,11 @@ from __future__ import annotations
 import argparse
 import os
 from typing import Any, Dict, List
+import json
+import re
+from datetime import datetime
+from typing import Optional
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -185,6 +190,104 @@ EXAMPLE_DEADLINES: List[Dict[str, Any]] = [
     },
 ]
 
+def normalize_degree_level(value: str) -> str:
+    v = value.strip().lower()
+    if v in {"phd", "ph.d", "ph.d."}:
+        return "phd"
+    if v in {"masters", "master's", "ms", "m.s.", "m.eng", "meng"}:
+        return "ms"
+    return v
+
+def normalize_deadline_date(raw: str, term: str) -> Optional[str]:
+    """
+    Convert common deadline strings to YYYY-MM-DD.
+    Returns None if parsing fails.
+    """
+    if not raw:
+        return None
+
+    s = raw.strip()
+
+    # Already ISO-like
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # Remove ordinal suffixes: 23rd -> 23
+    s = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', s, flags=re.IGNORECASE)
+
+    # Remove time / timezone suffixes
+    s = re.sub(r',?\s*\d{1,2}:\d{2}\s*[APMapm]{2}\s*[A-Z]{0,4}', '', s).strip()
+
+    # If year missing, infer from term
+    inferred_year = None
+    term_lower = (term or "").lower()
+    if "fall 2026" in term_lower:
+        inferred_year = 2025   # fall admissions deadlines are usually in prior year
+    elif "spring 2026" in term_lower:
+        inferred_year = 2025   # may vary, but still better than leaving blank
+
+    # Try formats with year
+    for fmt in ("%B %d, %Y", "%b %d, %Y"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # Try formats without year
+    if inferred_year is not None:
+        for fmt in ("%B %d", "%b %d"):
+            try:
+                dt = datetime.strptime(s, fmt)
+                return dt.replace(year=inferred_year).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
+    return None
+
+def load_deadlines_from_jsonl(path: str) -> list[dict]:
+    deadlines = []
+    skipped = 0
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line_num, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(f"Skipping line {line_num}: invalid JSON ({e})")
+                skipped += 1
+                continue
+
+            school = row.get("school", "").strip().lower()
+            program = row.get("program", "").strip()
+            degree_level = normalize_degree_level(row.get("degree_level", ""))
+            term = row.get("term", "").strip()
+            source_url = row.get("source_url", "").strip()
+            deadline_date = normalize_deadline_date(row.get("deadline_date", ""), term)
+
+            if not all([school, program, degree_level, term, source_url, deadline_date]):
+                print(f"Skipping line {line_num}: missing/invalid required field(s)")
+                skipped += 1
+                continue
+
+            deadlines.append({
+                "school": school,
+                "program": program,
+                "degree_level": degree_level,
+                "deadline_date": deadline_date,
+                "term": term,
+                "source_url": source_url,
+            })
+
+    print(f"Loaded {len(deadlines)} records from JSONL, skipped {skipped}")
+    return deadlines
+
 
 def make_index_mapping() -> Dict[str, Any]:
     """Create the Elasticsearch index mapping for grad program deadlines."""
@@ -223,19 +326,12 @@ def make_index_mapping() -> Dict[str, Any]:
                     "type": "date",
                     "format": "strict_date_optional_time||yyyy-MM-dd||epoch_millis",
                 },
-                "deadline_type": {
-                    "type": "keyword",
-                },
                 "term": {
                     "type": "keyword",
                 },
                 "source_url": {
                     "type": "keyword",
                     "index": False,
-                },
-                "updated_at": {
-                    "type": "date",
-                    "format": "strict_date_optional_time||epoch_millis",
                 },
             },
         },
@@ -340,8 +436,10 @@ def main() -> None:
         create_index(es, args.index)
 
     # Bulk index documents
-    print(f"Indexing {len(EXAMPLE_DEADLINES)} deadline documents...")
-    success, failed = bulk_index_deadlines(es, args.index, EXAMPLE_DEADLINES)
+    deadlines_data_path = "data/deadlines.jsonl"
+    deadlines = load_deadlines_from_jsonl(deadlines_data_path)
+    print(f"Indexing {len(deadlines)} deadline documents...")
+    success, failed = bulk_index_deadlines(es, args.index, deadlines)
 
     print(f"Indexing complete: {success} succeeded, {failed} failed")
 

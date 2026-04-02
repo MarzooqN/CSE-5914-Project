@@ -1762,12 +1762,12 @@ async def list_top_programs_by_area(
 
 
 # =============================================================================
-# DEADLINES (TO-DO: implement when deadline index/ingestion is ready)
+# DEADLINES
 # =============================================================================
 
 
 async def get_program_deadlines(
-     school: str,
+    school: str,
     degree_level: str = "phd",
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
@@ -1775,11 +1775,11 @@ async def get_program_deadlines(
     __user__: dict = None,
 ) -> str:
     """
-    Get application deadlines for programs at a school (PhD or MS).
-    TO-DO: Implement once deadline index and ingestion are available.
+    Get application deadlines for programs at a specific school (PhD or MS).
+    Use this to answer questions like "What are the PhD deadlines for University X?"
 
-    :param school: School or university name
-    :param degree_level: "phd" or "ms"
+    :param school: School or university name (e.g. "Carnegie Mellon University")
+    :param degree_level: "phd" or "ms" (default: "phd")
     :param start_date: Optional filter: only deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Optional filter: only deadlines on or before this date (YYYY-MM-DD)
     :return: JSON list of program deadlines
@@ -1810,8 +1810,7 @@ async def get_program_deadlines(
         return json.dumps({"results": results}, ensure_ascii=False)
     except Exception as e:
         log.exception(f"get_program_deadlines error: {e}")
-        return json.dumps({"error": str(e)}
-    )
+        return json.dumps({"error": str(e)})
 
 
 async def filter_programs_by_deadline_and_degree(
@@ -1831,7 +1830,7 @@ async def filter_programs_by_deadline_and_degree(
     :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
     :param count: Maximum number of results to return (default: 20)
-    :return: JSON list with school, program, degree_level, deadline_date, deadline_type, term, source_url
+    :return: JSON list with school, program, degree_level, deadline_date, term, source_url
     """
     log.info(
         "grad_school tool called: filter_programs_by_deadline_and_degree(degree_level=%r, start_date=%r, end_date=%r, count=%s)",

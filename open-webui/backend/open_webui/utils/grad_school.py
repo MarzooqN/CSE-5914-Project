@@ -229,7 +229,7 @@ def rank_programs_by_area(
         log.exception("grad_school rank_programs_by_area: %s", e)
         return []
 
-    buckets = (resp.get("aggs") or {}).get("by_dept", {}).get("buckets", [])
+    buckets = (resp.get("aggregations") or {}).get("by_dept", {}).get("buckets", [])
     return [
         {"dept": b["key"], "score": b.get("total", {}).get("value", 0)}
         for b in buckets
@@ -237,35 +237,32 @@ def rank_programs_by_area(
 
 
 def query_programs_by_deadline(
+    school: Optional[str] = None,
     degree_level: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = 20,
 ) -> list[dict[str, Any]]:
     """
-    Filter programs by degree level and/or deadline date range.
+    Filter programs by school, degree level, and/or deadline date range.
     Queries the grad_program_deadlines index.
 
-    Expected index document schema:
-    - school: keyword (university name, lowercase normalized)
-    - program: text/keyword (program or department name)
-    - degree_level: keyword ("phd" or "ms")
-    - deadline_date: date (ISO format, e.g. "2025-12-15")
-    - deadline_type: keyword (e.g. "priority", "final", "rolling")
-    - term: keyword (e.g. "Fall 2026")
-    - source_url: keyword (link to program admissions page)
-
+    :param school: University name to filter by (optional)
     :param degree_level: Degree level to filter by ("phd" or "ms")
     :param start_date: Only include deadlines on or after this date (YYYY-MM-DD)
     :param end_date: Only include deadlines on or before this date (YYYY-MM-DD)
     :param limit: Maximum number of results to return
-    :return: List of dicts with school, program, degree_level, deadline_date, deadline_type, term, source_url
+    :return: List of dicts with school, program, degree_level, deadline_date, term, source_url
     """
     es = _get_es_client()
     index = GRAD_SCHOOL_DEADLINES_ES_INDEX
 
     # Build bool filter
     must = []
+
+    # Add school filter if provided
+    if school:
+        must.append({"term": {"school": school.strip().lower()}})
 
     # Add degree level filter if provided
     if degree_level:
@@ -286,7 +283,7 @@ def query_programs_by_deadline(
     else:
         query = {"query": {"match_all": {}}, "size": limit}
 
-    query["_source"] = ["school", "program", "degree_level", "deadline_date", "deadline_type", "term", "source_url"]
+    query["_source"] = ["school", "program", "degree_level", "deadline_date", "term", "source_url"]
     query["sort"] = [{"deadline_date": "asc"}]
 
     try:
@@ -303,7 +300,6 @@ def query_programs_by_deadline(
             "program": src.get("program", ""),
             "degree_level": src.get("degree_level", ""),
             "deadline_date": src.get("deadline_date", ""),
-            "deadline_type": src.get("deadline_type", ""),
             "term": src.get("term", ""),
             "source_url": src.get("source_url", ""),
         })

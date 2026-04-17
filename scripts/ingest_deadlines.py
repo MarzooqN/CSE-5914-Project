@@ -2,8 +2,8 @@
 """
 Grad Program Deadlines -> Elasticsearch ingestion
 
-This script creates and populates the grad_program_deadlines index with
-example deadline data for testing the filter_programs_by_deadline_and_degree tool.
+This script creates and populates the grad_program_deadlines index from
+scripts/data/deadlines.jsonl.
 
 Requirements:
   pip install elasticsearch python-dotenv
@@ -24,6 +24,11 @@ from __future__ import annotations
 import argparse
 import os
 from typing import Any, Dict, List
+import json
+import re
+from datetime import datetime
+from typing import Optional
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -36,154 +41,112 @@ except ImportError:
     helpers = None
 
 
-# ----------------------------
-# Example deadline data
-# ----------------------------
+def normalize_degree_level(value: str) -> str:
+    v = value.strip().lower()
+    if v in {"phd", "ph.d", "ph.d."}:
+        return "phd"
+    if v in {"masters", "master's", "ms", "m.s.", "m.eng", "meng"}:
+        return "ms"
+    return v
 
-EXAMPLE_DEADLINES: List[Dict[str, Any]] = [
-    # PhD programs — varied deadline months
-    {
-        "school": "ohio state university",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2025-11-30",
-        "deadline_type": "priority",
-        "term": "Fall 2026",
-        "source_url": "https://cse.osu.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "ohio state university",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2025-12-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cse.osu.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "carnegie mellon university",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2025-12-01",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.cmu.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "stanford university",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2025-12-05",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.stanford.edu/admissions/phd",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "university of michigan",
-        "program": "Computer Science and Engineering",
-        "degree_level": "phd",
-        "deadline_date": "2025-12-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cse.umich.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "university of illinois urbana-champaign",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2026-01-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.illinois.edu/admissions/phd",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "georgia institute of technology",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2026-02-01",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://scs.gatech.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "university of washington",
-        "program": "Computer Science",
-        "degree_level": "phd",
-        "deadline_date": "2025-12-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.washington.edu/phd/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    # MS programs — later deadline months
-    {
-        "school": "ohio state university",
-        "program": "Computer Science",
-        "degree_level": "ms",
-        "deadline_date": "2026-02-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cse.osu.edu/ms/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "carnegie mellon university",
-        "program": "Computer Science",
-        "degree_level": "ms",
-        "deadline_date": "2026-01-10",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.cmu.edu/ms/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "stanford university",
-        "program": "Computer Science",
-        "degree_level": "ms",
-        "deadline_date": "2026-03-15",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cs.stanford.edu/admissions/ms",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "university of michigan",
-        "program": "Computer Science and Engineering",
-        "degree_level": "ms",
-        "deadline_date": "2026-03-01",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://cse.umich.edu/ms/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "georgia institute of technology",
-        "program": "Computer Science",
-        "degree_level": "ms",
-        "deadline_date": "2026-04-01",
-        "deadline_type": "final",
-        "term": "Fall 2026",
-        "source_url": "https://scs.gatech.edu/ms/admissions",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-    {
-        "school": "university of illinois urbana-champaign",
-        "program": "Computer Science",
-        "degree_level": "ms",
-        "deadline_date": "2026-05-01",
-        "deadline_type": "rolling",
-        "term": "Fall 2026",
-        "source_url": "https://cs.illinois.edu/admissions/ms",
-        "updated_at": "2025-10-01T00:00:00Z",
-    },
-]
+def normalize_deadline_date(raw: str, term: str) -> Optional[str]:
+    """
+    Convert common deadline strings to YYYY-MM-DD.
+    Returns None if parsing fails.
+    """
+    if not raw:
+        return None
+
+    s = raw.strip()
+
+    # Already ISO-like
+    for fmt in ("%Y-%m-%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # Remove ordinal suffixes: 23rd -> 23
+    s = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', s, flags=re.IGNORECASE)
+
+    # Remove time / timezone suffixes
+    s = re.sub(r',?\s*\d{1,2}:\d{2}\s*[APMapm]{2}\s*[A-Z]{0,4}', '', s).strip()
+
+    # Strip trailing commas/punctuation left over after cleaning
+    s = s.rstrip(",. ")
+
+    # Infer year from term when date string has no year
+    # Extract the term year (e.g. "Fall 2026" -> 2026)
+    inferred_year = None
+    term_lower = (term or "").lower()
+    term_year_match = re.search(r'(\d{4})', term or "")
+    term_year = int(term_year_match.group(1)) if term_year_match else None
+
+    # Try formats with year
+    for fmt in ("%B %d, %Y", "%b %d, %Y"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+
+    # Try formats without year — infer year from term and month
+    if term_year is not None:
+        for fmt in ("%B %d", "%b %d"):
+            try:
+                dt = datetime.strptime(s, fmt)
+                # For Fall admissions: Jul-Dec deadlines are in term_year-1,
+                # Jan-Jun deadlines are in term_year itself.
+                # For Spring admissions: all deadlines are in term_year-1.
+                if "fall" in term_lower:
+                    inferred_year = term_year - 1 if dt.month >= 7 else term_year
+                else:
+                    inferred_year = term_year - 1
+                return dt.replace(year=inferred_year).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
+    return None
+
+def load_deadlines_from_jsonl(path: str) -> list[dict]:
+    deadlines = []
+    skipped = 0
+
+    with open(path, "r", encoding="utf-8") as f:
+        for line_num, line in enumerate(f, start=1):
+            line = line.strip()
+            if not line:
+                continue
+
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(f"Skipping line {line_num}: invalid JSON ({e})")
+                skipped += 1
+                continue
+
+            school = row.get("school", "").strip().lower()
+            program = row.get("program", "").strip()
+            degree_level = normalize_degree_level(row.get("degree_level", ""))
+            term = row.get("term", "").strip()
+            source_url = row.get("source_url", "").strip()
+            deadline_date = normalize_deadline_date(row.get("deadline_date", ""), term)
+
+            if not all([school, program, degree_level, term, source_url, deadline_date]):
+                print(f"Skipping line {line_num}: missing/invalid required field(s)")
+                skipped += 1
+                continue
+
+            deadlines.append({
+                "school": school,
+                "program": program,
+                "degree_level": degree_level,
+                "deadline_date": deadline_date,
+                "term": term,
+                "source_url": source_url,
+            })
+
+    print(f"Loaded {len(deadlines)} records from JSONL, skipped {skipped}")
+    return deadlines
 
 
 def make_index_mapping() -> Dict[str, Any]:
@@ -223,19 +186,12 @@ def make_index_mapping() -> Dict[str, Any]:
                     "type": "date",
                     "format": "strict_date_optional_time||yyyy-MM-dd||epoch_millis",
                 },
-                "deadline_type": {
-                    "type": "keyword",
-                },
                 "term": {
                     "type": "keyword",
                 },
                 "source_url": {
                     "type": "keyword",
                     "index": False,
-                },
-                "updated_at": {
-                    "type": "date",
-                    "format": "strict_date_optional_time||epoch_millis",
                 },
             },
         },
@@ -302,28 +258,34 @@ def main() -> None:
                         help="Create/recreate the index before ingesting")
     parser.add_argument("--dry-run", action="store_true",
                         help="Print documents without indexing")
+    parser.add_argument("--dry-run-count", type=int, default=10,
+                        help="Number of documents to print in dry-run mode")
 
     args = parser.parse_args()
+
+    deadlines_data_path = "data/deadlines.jsonl"
+    deadlines = load_deadlines_from_jsonl(deadlines_data_path)
 
     print(f"Deadline ingestion script")
     print(f"  ES URL: {args.es_url}")
     print(f"  Index: {args.index}")
-    print(f"  Documents: {len(EXAMPLE_DEADLINES)}")
+    print(f"  Data file: {deadlines_data_path}")
+    print(f"  Documents: {len(deadlines)}")
     print()
 
     if args.dry_run:
         print("=== DRY RUN MODE ===")
         print()
-        for d in EXAMPLE_DEADLINES:
+        for d in deadlines[: max(1, args.dry_run_count)]:
             print(f"  School: {d['school']}")
             print(f"  Program: {d['program']}")
             print(f"  Degree: {d['degree_level']}")
-            print(f"  Deadline: {d['deadline_date']} ({d.get('deadline_type', '')})")
+            print(f"  Deadline: {d['deadline_date']}")
             print(f"  Term: {d.get('term', '')}")
             print(f"  URL: {d.get('source_url', '')}")
             print()
 
-        print(f"Total: {len(EXAMPLE_DEADLINES)} documents")
+        print(f"Total: {len(deadlines)} documents")
         return
 
     # Connect to Elasticsearch
@@ -340,8 +302,8 @@ def main() -> None:
         create_index(es, args.index)
 
     # Bulk index documents
-    print(f"Indexing {len(EXAMPLE_DEADLINES)} deadline documents...")
-    success, failed = bulk_index_deadlines(es, args.index, EXAMPLE_DEADLINES)
+    print(f"Indexing {len(deadlines)} deadline documents...")
+    success, failed = bulk_index_deadlines(es, args.index, deadlines)
 
     print(f"Indexing complete: {success} succeeded, {failed} failed")
 

@@ -1092,21 +1092,15 @@ async def chat_resume_fit_handler(request: Request, form_data: dict, user) -> di
         area = result["research_area"]
         matched = result["matched_keywords"]
         missing = result["missing_keywords"]
+        summary = result["summary"]
         a = result["category_scores"]["area_keywords"]
         r = result["category_scores"]["research_experience"]
         c = result["category_scores"]["coding_and_tools"]
 
-        strength = "strong" if a["score"] >= 35 else "moderate" if a["score"] >= 20 else "limited"
-        research_str = (
-            "solid research background" if r["score"] >= 20
-            else "some research exposure" if r["score"] >= 10
-            else "little research experience highlighted"
-        )
-
         score_context = f"""<resume_fit_analysis>
-SYSTEM OVERRIDE: Before writing anything else, you MUST copy and display this score report exactly as shown below. Do not skip it, summarize it, or rewrite it. Show the numbers first, then add your own analysis after.
+The following resume fit analysis was computed for the user. Present this score report to the user using markdown formatting, then add your own commentary and suggestions.
 
-**Resume Fit Score Report**
+**Resume Fit Score Report — {area}**
 Overall Score: {overall}/100  |  Letter Grade: {grade}
 
 Score Breakdown:
@@ -1116,13 +1110,16 @@ Score Breakdown:
 
 Matched Keywords: {', '.join(matched) if matched else 'None'}
 Top Missing Keywords: {', '.join(missing[:5]) if missing else 'None'}
-Alignment: {strength} alignment, {research_str}.
-</resume_fit_analysis>
 
-Start your response with the score report above, formatted with markdown bold headers. Then add commentary."""
+Summary: {summary}
+</resume_fit_analysis>"""
         form_data["messages"] = add_or_update_system_message(
             score_context, form_data["messages"], append=True
         )
+
+        # Flag so the builtin tool can skip duplicate scoring
+        metadata = form_data.setdefault("metadata", {})
+        metadata["resume_fit_scored"] = True
 
         log.info(
             "chat_resume_fit_handler: injected score %d/%s for area=%r (resume_len=%d)",

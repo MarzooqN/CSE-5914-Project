@@ -326,12 +326,13 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "information extraction", "coreference", "dependency parsing",
             "huggingface", "spacy", "nltk",
         ],
-        "section_tags": ["nlp", "natural language", "language", "text"],
     },
     "mlmining": {
         "keywords": [
-            "machine learning", "deep learning", "neural network", "cnn",
-            "rnn", "lstm", "reinforcement learning", "supervised learning",
+            "machine learning", "ml", "deep learning", "dl",
+            "neural network", "nn", "cnn",
+            "rnn", "lstm", "reinforcement learning", "rl",
+            "supervised learning",
             "unsupervised learning", "gradient descent", "backpropagation",
             "pytorch", "tensorflow", "keras", "scikit-learn", "sklearn",
             "feature engineering", "hyperparameter", "classification",
@@ -339,7 +340,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "support vector", "generative model", "gan", "diffusion model",
             "fine-tuning", "transfer learning",
         ],
-        "section_tags": ["ml", "machine learning", "deep learning", "ai"],
     },
     "sec": {
         "keywords": [
@@ -350,7 +350,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "firewall", "zero-day", "threat modeling", "secure coding",
             "owasp", "kali", "metasploit", "burp suite",
         ],
-        "section_tags": ["security", "cyber", "pen test", "ctf"],
     },
     "crypt": {
         "keywords": [
@@ -358,7 +357,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "hash function", "public key", "private key", "rsa", "aes",
             "elliptic curve", "zero knowledge", "homomorphic",
         ],
-        "section_tags": ["crypto", "cryptography"],
     },
     "arch": {
         "keywords": [
@@ -367,7 +365,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "instruction set", "isa", "verilog", "hdl", "risc", "x86",
             "hardware design", "chip design",
         ],
-        "section_tags": ["architecture", "hardware", "systems"],
     },
     "ops": {
         "keywords": [
@@ -376,7 +373,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "concurrency", "synchronization", "mutex", "semaphore",
             "linux", "unix", "posix", "system calls",
         ],
-        "section_tags": ["operating systems", "os", "systems"],
     },
     "comm": {
         "keywords": [
@@ -384,17 +380,15 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "dns", "routing", "switching", "socket", "packet", "bandwidth",
             "latency", "wireless", "5g", "sdn", "network simulation",
         ],
-        "section_tags": ["networking", "networks", "comm"],
     },
     "vision": {
         "keywords": [
-            "computer vision", "image classification", "object detection",
+            "computer vision", "cv", "image classification", "object detection",
             "segmentation", "ocr", "optical flow", "3d reconstruction",
             "point cloud", "lidar", "yolo", "faster rcnn", "resnet",
             "image processing", "opencv", "pose estimation",
             "depth estimation", "video understanding", "tracking",
         ],
-        "section_tags": ["vision", "image", "cv", "computer vision"],
     },
     "robotics": {
         "keywords": [
@@ -404,7 +398,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "autonomous", "drone", "uav", "control system", "pid",
             "gazebo",
         ],
-        "section_tags": ["robotics", "robot", "autonomous", "control"],
     },
     "act": {
         "keywords": [
@@ -414,7 +407,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "formal methods", "proof", "theorem", "online algorithm",
             "streaming algorithm", "data structure",
         ],
-        "section_tags": ["theory", "algorithms", "math", "discrete"],
     },
     "mod": {
         "keywords": [
@@ -422,7 +414,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "transactions", "acid", "relational", "postgresql", "mysql",
             "mongodb", "data modeling", "schema design", "data warehouse",
         ],
-        "section_tags": ["databases", "db", "data"],
     },
     "hpc": {
         "keywords": [
@@ -431,7 +422,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "distributed computing", "mapreduce", "spark", "hadoop",
             "job scheduler", "slurm",
         ],
-        "section_tags": ["hpc", "parallel", "distributed"],
     },
 "ai": {
         "keywords": [
@@ -440,7 +430,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "bayesian", "probabilistic reasoning", "constraint satisfaction",
             "multi-agent", "game playing",
         ],
-        "section_tags": ["ai", "artificial intelligence"],
     },
     "inforet": {
         "keywords": [
@@ -449,7 +438,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "web scraping", "recommendation system", "collaborative filtering",
             "content-based filtering", "knowledge graph", "semantic search",
         ],
-        "section_tags": ["information retrieval", "search", "web", "ir"],
     },
     "da": {
         "keywords": [
@@ -457,7 +445,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "vlsi", "synthesis", "place and route", "timing analysis",
             "logic synthesis", "circuit design", "cadence", "synopsys",
         ],
-        "section_tags": ["design automation", "eda", "vlsi"],
     },
     "bed": {
         "keywords": [
@@ -466,7 +453,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "embedded c", "arm", "iot", "internet of things", "sensor",
             "actuator", "real-time scheduling",
         ],
-        "section_tags": ["embedded", "real-time", "iot", "firmware"],
     },
     "mobile": {
         "keywords": [
@@ -474,7 +460,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "react native", "flutter", "mobile app", "mobile development",
             "location services", "push notifications", "mobile security",
         ],
-        "section_tags": ["mobile", "android", "ios", "app"],
     },
     "metrics": {
         "keywords": [
@@ -483,7 +468,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "performance modeling", "simulation", "queueing theory",
             "workload characterization",
         ],
-        "section_tags": ["performance", "benchmarking", "metrics"],
     },
     "plan": {
         "keywords": [
@@ -493,7 +477,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "rust", "functional programming", "haskell", "ocaml",
             "program synthesis", "language design",
         ],
-        "section_tags": ["programming languages", "compilers", "pl"],
     },
     "soft": {
         "keywords": [
@@ -503,7 +486,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "microservices", "software quality", "debugging",
             "version control", "requirements engineering",
         ],
-        "section_tags": ["software engineering", "devops", "agile"],
     },
     "log": {
         "keywords": [
@@ -511,7 +493,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "satisfiability", "sat solver", "smt", "coq", "isabelle",
             "temporal logic", "program verification", "automated reasoning",
         ],
-        "section_tags": ["logic", "verification", "formal methods"],
     },
     "bio": {
         "keywords": [
@@ -520,7 +501,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "sequence alignment", "gene expression", "metagenomics",
             "biopython", "r bioconductor",
         ],
-        "section_tags": ["bioinformatics", "genomics", "biology"],
     },
     "graph": {
         "keywords": [
@@ -529,7 +509,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "3d modeling", "animation", "blender", "unity", "unreal",
             "game engine", "physically based rendering",
         ],
-        "section_tags": ["graphics", "rendering", "3d", "game"],
     },
     "csed": {
         "keywords": [
@@ -538,7 +517,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "learning outcomes", "educational technology", "mooc",
             "broadening participation", "k-12",
         ],
-        "section_tags": ["education", "teaching", "cs ed"],
     },
     "ecom": {
         "keywords": [
@@ -547,7 +525,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "computational economics", "game theory", "nash equilibrium",
             "social choice", "pricing algorithm",
         ],
-        "section_tags": ["economics", "game theory", "mechanism design"],
     },
     "chi": {
         "keywords": [
@@ -556,7 +533,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "user study", "a/b testing", "figma", "prototyping",
             "interaction design", "cognitive load", "eye tracking",
         ],
-        "section_tags": ["hci", "ui", "ux", "interaction"],
     },
     "visualization": {
         "keywords": [
@@ -565,7 +541,6 @@ _AREA_KEYWORDS: dict[str, dict] = {
             "dashboard", "charting", "geospatial visualization",
             "matplotlib", "plotly", "vega",
         ],
-        "section_tags": ["visualization", "dataviz", "dashboard"],
     },
 }
 
@@ -592,7 +567,10 @@ def _normalize_text(text: str) -> str:
 def _keyword_hits(text_lower: str, keywords: list[str]) -> list[str]:
     found = []
     for kw in keywords:
-        if _re.search(r"\b" + _re.escape(kw) + r"\b", text_lower):
+        escaped = _re.escape(kw)
+        # Use lookaround boundaries that work for non-word chars like c++, c#, ci/cd
+        pattern = r"(?<!\w)" + escaped + r"(?!\w)"
+        if _re.search(pattern, text_lower):
             found.append(kw)
     return found
 

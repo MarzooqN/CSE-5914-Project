@@ -1889,6 +1889,17 @@ async def check_resume_fit(
     if __request__ is None:
         return json.dumps({"error": "Request context not available"})
 
+    # Skip if middleware already scored this request (avoid duplicate results)
+    try:
+        state_metadata = getattr(__request__, "state", None)
+        form = getattr(state_metadata, "form_data", None) if state_metadata else None
+        if form and form.get("metadata", {}).get("resume_fit_scored"):
+            return json.dumps({
+                "note": "Resume fit analysis was already provided via the middleware. See the score report above."
+            })
+    except Exception:
+        pass  # proceed normally if we can't check
+
     if not resume_text or not resume_text.strip():
         return json.dumps({"error": "resume_text is empty. Please paste the text of your resume."})
 

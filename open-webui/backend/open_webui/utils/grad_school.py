@@ -6,6 +6,7 @@ Index schema matches scripts/ingestion.py (csrankings_authors):
 """
 
 import logging
+import re as _re
 from typing import Any, Optional
 
 from open_webui.config import (
@@ -304,3 +305,401 @@ def query_programs_by_deadline(
             "source_url": src.get("source_url", ""),
         })
     return out
+
+
+# ---------------------------------------------------------------------------
+# Resume Fit Checker
+# ---------------------------------------------------------------------------
+# No new Elasticsearch index needed — scoring is done locally via keyword
+# matching against the area taxonomy below.
+# ---------------------------------------------------------------------------
+
+# Keyword taxonomy: area name -> keywords found in resumes + section tags
+_AREA_KEYWORDS: dict[str, dict] = {
+    "nlp": {
+        "keywords": [
+            "nlp", "natural language processing", "text classification",
+            "named entity recognition", "ner", "sentiment analysis",
+            "language model", "llm", "transformer", "bert", "gpt",
+            "seq2seq", "tokenization", "embeddings", "word2vec", "glove",
+            "question answering", "machine translation", "summarization",
+            "information extraction", "coreference", "dependency parsing",
+            "huggingface", "spacy", "nltk",
+        ],
+        "section_tags": ["nlp", "natural language", "language", "text"],
+    },
+    "mlmining": {
+        "keywords": [
+            "machine learning", "deep learning", "neural network", "cnn",
+            "rnn", "lstm", "reinforcement learning", "supervised learning",
+            "unsupervised learning", "gradient descent", "backpropagation",
+            "pytorch", "tensorflow", "keras", "scikit-learn", "sklearn",
+            "feature engineering", "hyperparameter", "classification",
+            "regression", "clustering", "random forest", "xgboost", "svm",
+            "support vector", "generative model", "gan", "diffusion model",
+            "fine-tuning", "transfer learning",
+        ],
+        "section_tags": ["ml", "machine learning", "deep learning", "ai"],
+    },
+    "sec": {
+        "keywords": [
+            "security", "cybersecurity", "penetration testing", "pen test",
+            "vulnerability", "exploit", "malware", "reverse engineering",
+            "network security", "web security", "sql injection", "xss",
+            "ctf", "capture the flag", "forensics", "intrusion detection",
+            "firewall", "zero-day", "threat modeling", "secure coding",
+            "owasp", "kali", "metasploit", "burp suite",
+        ],
+        "section_tags": ["security", "cyber", "pen test", "ctf"],
+    },
+    "crypt": {
+        "keywords": [
+            "cryptography", "encryption", "decryption", "tls", "ssl", "pki",
+            "hash function", "public key", "private key", "rsa", "aes",
+            "elliptic curve", "zero knowledge", "homomorphic",
+        ],
+        "section_tags": ["crypto", "cryptography"],
+    },
+    "arch": {
+        "keywords": [
+            "computer architecture", "cpu", "gpu", "fpga", "cache",
+            "pipeline", "microarchitecture", "memory hierarchy",
+            "instruction set", "isa", "verilog", "hdl", "risc", "x86",
+            "hardware design", "chip design",
+        ],
+        "section_tags": ["architecture", "hardware", "systems"],
+    },
+    "ops": {
+        "keywords": [
+            "operating systems", "kernel", "process", "thread", "scheduler",
+            "memory management", "virtual memory", "file system",
+            "concurrency", "synchronization", "mutex", "semaphore",
+            "linux", "unix", "posix", "system calls",
+        ],
+        "section_tags": ["operating systems", "os", "systems"],
+    },
+    "comm": {
+        "keywords": [
+            "networking", "network protocol", "tcp", "ip", "udp", "http",
+            "dns", "routing", "switching", "socket", "packet", "bandwidth",
+            "latency", "wireless", "5g", "sdn", "network simulation",
+        ],
+        "section_tags": ["networking", "networks", "comm"],
+    },
+    "vision": {
+        "keywords": [
+            "computer vision", "image classification", "object detection",
+            "segmentation", "ocr", "optical flow", "3d reconstruction",
+            "point cloud", "lidar", "yolo", "faster rcnn", "resnet",
+            "image processing", "opencv", "pose estimation",
+            "depth estimation", "video understanding", "tracking",
+        ],
+        "section_tags": ["vision", "image", "cv", "computer vision"],
+    },
+    "robotics": {
+        "keywords": [
+            "robotics", "ros", "robot operating system", "kinematics",
+            "motion planning", "path planning", "sensor fusion", "imu",
+            "localization", "mapping", "slam", "manipulation",
+            "autonomous", "drone", "uav", "control system", "pid",
+            "gazebo",
+        ],
+        "section_tags": ["robotics", "robot", "autonomous", "control"],
+    },
+    "act": {
+        "keywords": [
+            "algorithm", "complexity", "np-hard", "np-complete",
+            "approximation algorithm", "graph theory", "combinatorics",
+            "probability theory", "computational geometry", "automata",
+            "formal methods", "proof", "theorem", "online algorithm",
+            "streaming algorithm", "data structure",
+        ],
+        "section_tags": ["theory", "algorithms", "math", "discrete"],
+    },
+    "mod": {
+        "keywords": [
+            "database", "sql", "nosql", "query optimization", "indexing",
+            "transactions", "acid", "relational", "postgresql", "mysql",
+            "mongodb", "data modeling", "schema design", "data warehouse",
+        ],
+        "section_tags": ["databases", "db", "data"],
+    },
+    "hpc": {
+        "keywords": [
+            "high performance computing", "parallel computing", "mpi",
+            "openmp", "cuda", "gpu programming", "cluster", "supercomputer",
+            "distributed computing", "mapreduce", "spark", "hadoop",
+            "job scheduler", "slurm",
+        ],
+        "section_tags": ["hpc", "parallel", "distributed"],
+    },
+"ai": {
+        "keywords": [
+            "artificial intelligence", "ai", "knowledge representation",
+            "expert system", "planning", "search algorithm", "heuristic",
+            "bayesian", "probabilistic reasoning", "constraint satisfaction",
+            "multi-agent", "game playing",
+        ],
+        "section_tags": ["ai", "artificial intelligence"],
+    },
+    "inforet": {
+        "keywords": [
+            "information retrieval", "search engine", "web search", "indexing",
+            "ranking", "tf-idf", "bm25", "inverted index", "crawling",
+            "web scraping", "recommendation system", "collaborative filtering",
+            "content-based filtering", "knowledge graph", "semantic search",
+        ],
+        "section_tags": ["information retrieval", "search", "web", "ir"],
+    },
+    "da": {
+        "keywords": [
+            "design automation", "eda", "electronic design automation",
+            "vlsi", "synthesis", "place and route", "timing analysis",
+            "logic synthesis", "circuit design", "cadence", "synopsys",
+        ],
+        "section_tags": ["design automation", "eda", "vlsi"],
+    },
+    "bed": {
+        "keywords": [
+            "embedded systems", "real-time systems", "rtos", "microcontroller",
+            "arduino", "raspberry pi", "firmware", "bare metal", "interrupt",
+            "embedded c", "arm", "iot", "internet of things", "sensor",
+            "actuator", "real-time scheduling",
+        ],
+        "section_tags": ["embedded", "real-time", "iot", "firmware"],
+    },
+    "mobile": {
+        "keywords": [
+            "mobile computing", "android", "ios", "swift", "kotlin",
+            "react native", "flutter", "mobile app", "mobile development",
+            "location services", "push notifications", "mobile security",
+        ],
+        "section_tags": ["mobile", "android", "ios", "app"],
+    },
+    "metrics": {
+        "keywords": [
+            "performance analysis", "benchmarking", "profiling", "tracing",
+            "monitoring", "observability", "latency", "throughput",
+            "performance modeling", "simulation", "queueing theory",
+            "workload characterization",
+        ],
+        "section_tags": ["performance", "benchmarking", "metrics"],
+    },
+    "plan": {
+        "keywords": [
+            "programming languages", "compiler", "type system", "type theory",
+            "static analysis", "program analysis", "formal verification",
+            "llvm", "interpreter", "garbage collection", "memory safety",
+            "rust", "functional programming", "haskell", "ocaml",
+            "program synthesis", "language design",
+        ],
+        "section_tags": ["programming languages", "compilers", "pl"],
+    },
+    "soft": {
+        "keywords": [
+            "software engineering", "agile", "scrum", "devops", "ci/cd",
+            "testing", "unit test", "integration test", "code review",
+            "refactoring", "design pattern", "software architecture",
+            "microservices", "software quality", "debugging",
+            "version control", "requirements engineering",
+        ],
+        "section_tags": ["software engineering", "devops", "agile"],
+    },
+    "log": {
+        "keywords": [
+            "logic", "formal verification", "model checking", "theorem proving",
+            "satisfiability", "sat solver", "smt", "coq", "isabelle",
+            "temporal logic", "program verification", "automated reasoning",
+        ],
+        "section_tags": ["logic", "verification", "formal methods"],
+    },
+    "bio": {
+        "keywords": [
+            "bioinformatics", "computational biology", "genomics", "sequencing",
+            "dna", "rna", "protein structure", "phylogenetics", "blast",
+            "sequence alignment", "gene expression", "metagenomics",
+            "biopython", "r bioconductor",
+        ],
+        "section_tags": ["bioinformatics", "genomics", "biology"],
+    },
+    "graph": {
+        "keywords": [
+            "computer graphics", "rendering", "opengl", "webgl", "vulkan",
+            "ray tracing", "rasterization", "shading", "texture mapping",
+            "3d modeling", "animation", "blender", "unity", "unreal",
+            "game engine", "physically based rendering",
+        ],
+        "section_tags": ["graphics", "rendering", "3d", "game"],
+    },
+    "csed": {
+        "keywords": [
+            "cs education", "computer science education", "curriculum design",
+            "pedagogy", "tutoring", "teaching assistant", "course design",
+            "learning outcomes", "educational technology", "mooc",
+            "broadening participation", "k-12",
+        ],
+        "section_tags": ["education", "teaching", "cs ed"],
+    },
+    "ecom": {
+        "keywords": [
+            "economics and computation", "algorithmic game theory",
+            "mechanism design", "auction theory", "market design",
+            "computational economics", "game theory", "nash equilibrium",
+            "social choice", "pricing algorithm",
+        ],
+        "section_tags": ["economics", "game theory", "mechanism design"],
+    },
+    "chi": {
+        "keywords": [
+            "human-computer interaction", "hci", "user interface", "ui",
+            "ux", "user experience", "usability", "accessibility",
+            "user study", "a/b testing", "figma", "prototyping",
+            "interaction design", "cognitive load", "eye tracking",
+        ],
+        "section_tags": ["hci", "ui", "ux", "interaction"],
+    },
+    "visualization": {
+        "keywords": [
+            "visualization", "data visualization", "d3", "tableau",
+            "visual analytics", "scientific visualization", "information visualization",
+            "dashboard", "charting", "geospatial visualization",
+            "matplotlib", "plotly", "vega",
+        ],
+        "section_tags": ["visualization", "dataviz", "dashboard"],
+    },
+}
+
+# Generic research signals (boost any area)
+_RESEARCH_SIGNALS = [
+    "research", "publication", "paper", "conference", "journal",
+    "arxiv", "ieee", "acm", "thesis", "dissertation", "lab",
+    "undergraduate research", "graduate research", "research assistant",
+    "research intern", "phd", "ms", "master", "bachelor",
+]
+
+# Coding / tooling depth signals
+_CODING_SIGNALS = [
+    "python", "java", "c++", "c#", "javascript", "typescript",
+    "sql", "bash", "r", "matlab", "scala", "rust", "go",
+    "git", "github", "linux", "api", "rest", "docker",
+]
+
+
+def _normalize_text(text: str) -> str:
+    return _re.sub(r"\s+", " ", text.lower())
+
+
+def _keyword_hits(text_lower: str, keywords: list[str]) -> list[str]:
+    found = []
+    for kw in keywords:
+        if _re.search(r"\b" + _re.escape(kw) + r"\b", text_lower):
+            found.append(kw)
+    return found
+
+
+def _resolve_area_for_resume(raw_area: str) -> tuple[str, dict | None]:
+    """
+    Map user-supplied area string to an _AREA_KEYWORDS entry.
+    Reuses the existing AREA_ALIASES dict so the same synonyms work here.
+    """
+    area_lower = raw_area.lower().strip()
+
+    # First check our resume taxonomy directly
+    if area_lower in _AREA_KEYWORDS:
+        return area_lower, _AREA_KEYWORDS[area_lower]
+
+    # Then check AREA_ALIASES (already defined above in this file) to get
+    # the parent key(s), and use the first one that exists in _AREA_KEYWORDS
+    mapped_keys = normalize_area(raw_area)  # uses AREA_ALIASES defined above
+    for key in mapped_keys:
+        if key in _AREA_KEYWORDS:
+            return key, _AREA_KEYWORDS[key]
+
+    # Substring fallback
+    for key in _AREA_KEYWORDS:
+        if key in area_lower or area_lower in key:
+            return key, _AREA_KEYWORDS[key]
+
+    return area_lower, None
+
+
+def score_resume_for_area(resume_text: str, research_area: str) -> dict:
+    """
+    Score a plain-text resume against a CS research area.
+
+    Returns a dict with:
+      overall_score   int  0-100
+      letter_grade    str  A/B/C/D/F
+      category_scores dict
+      matched_keywords list[str]
+      missing_keywords list[str]  (top 10 missing area keywords)
+      summary         str
+    """
+    text = _normalize_text(resume_text)
+    resolved_area, area_data = _resolve_area_for_resume(research_area)
+
+    # ---- 1. Area keyword score (0–50 pts) ----
+    area_kws = area_data["keywords"] if area_data else [research_area.lower()]
+    matched_area = _keyword_hits(text, area_kws)
+    missing_area = [kw for kw in area_kws if kw not in matched_area]
+    area_ratio = min(len(matched_area) / max(len(area_kws) * 0.4, 1), 1.0)
+    area_score = round(area_ratio * 50)
+
+    # ---- 2. Research experience signals (0–30 pts) ----
+    matched_research = _keyword_hits(text, _RESEARCH_SIGNALS)
+    research_ratio = min(len(matched_research) / max(len(_RESEARCH_SIGNALS) * 0.35, 1), 1.0)
+    research_score = round(research_ratio * 30)
+
+    # ---- 3. Coding / tooling depth (0–20 pts) ----
+    matched_coding = _keyword_hits(text, _CODING_SIGNALS)
+    coding_ratio = min(len(matched_coding) / max(len(_CODING_SIGNALS) * 0.4, 1), 1.0)
+    coding_score = round(coding_ratio * 20)
+
+    overall = area_score + research_score + coding_score  # 0–100
+
+    if overall >= 85:
+        grade = "A"
+    elif overall >= 70:
+        grade = "B"
+    elif overall >= 55:
+        grade = "C"
+    elif overall >= 40:
+        grade = "D"
+    else:
+        grade = "F"
+
+    top_missing = sorted(missing_area, key=len)[:10]
+
+    strength = "strong" if area_score >= 35 else "moderate" if area_score >= 20 else "limited"
+    research_str = (
+        "solid research background" if research_score >= 20
+        else "some research exposure" if research_score >= 10
+        else "little research experience highlighted"
+    )
+    summary = (
+        f"Your resume shows {strength} alignment with {resolved_area} "
+        f"({len(matched_area)} of {len(area_kws)} area keywords found) and "
+        f"{research_str}. "
+    )
+    if top_missing:
+        summary += f"Consider adding experience related to: {', '.join(top_missing[:5])}. "
+    if overall >= 70:
+        summary += "Overall, you appear to be a competitive candidate for this area."
+    elif overall >= 50:
+        summary += "With targeted projects or coursework, you could strengthen your profile."
+    else:
+        summary += "Gaining hands-on projects or coursework in this area would significantly improve your fit."
+
+    return {
+        "research_area": resolved_area,
+        "overall_score": overall,
+        "letter_grade": grade,
+        "category_scores": {
+            "area_keywords":        {"score": area_score,    "max": 50, "matched": len(matched_area),    "total": len(area_kws)},
+            "research_experience":  {"score": research_score,"max": 30, "matched": len(matched_research),"total": len(_RESEARCH_SIGNALS)},
+            "coding_and_tools":     {"score": coding_score,  "max": 20, "matched": len(matched_coding),  "total": len(_CODING_SIGNALS)},
+        },
+        "matched_keywords": matched_area,
+        "missing_keywords": top_missing,
+        "summary": summary,
+    }

@@ -76,6 +76,7 @@ from open_webui.tools.builtin import (
     list_top_programs_by_area,
     get_program_deadlines,
     filter_programs_by_deadline_and_degree,
+    check_resume_fit
 )
 
 import copy
@@ -478,6 +479,7 @@ def get_builtin_tools(
                 list_top_programs_by_area,
                 get_program_deadlines,
                 filter_programs_by_deadline_and_degree,
+                check_resume_fit
             ]
         )
 

@@ -1,219 +1,101 @@
-# LOCAL_SETUP — ResearchMatch Environment Setup & How to Run
+# Local Setup — Quick Start
 
-This document contains the **local environment setup**, **how to run the full stack**, and **runtime troubleshooting**.
-
-> Main project overview: **[README.md](README.md)**
+This is a quick-start guide to get the full stack running locally. Each step links to the detailed setup doc.
 
 ---
 
-## 1) Prerequisites (Everyone)
+## Prerequisites
 
-Each teammate should be able to run:
-1) **Elasticsearch + Kibana** (Docker)
-2) **Ollama** (local LLM runtime)
-3) **Streamlit app**
-
-### Required installs
-- **Docker Desktop + Docker Compose**
-- **Python 3.9+**
-- **Ollama**
-- Git
+- **Docker Desktop** (with Docker Compose)
+- **Python 3.11+**
+- **Node.js 22.10+** and **npm**
+- An **OpenAI API key** (or **Ollama** installed locally)
 
 ---
 
-## 2) Environment Variables (Recommended)
+## Steps
 
-Create a `.env` file at repo root (optional but recommended):
+### 1. Start Elasticsearch
 
-```
-ES_HOST=http://localhost:9200
-OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=llama3
-SNAPSHOT_VERSION=v1
-DATASET_DIR=data/golden
-```
+Use the Elastic start-local script or the provided Docker Compose:
 
-Your Python app can read these via `python-dotenv`.
-
----
-
-## 3) Start the Database (Elasticsearch + Kibana)
-
-### 3.1 Run Docker
 ```bash
-docker compose up -d
+cd elastic-start-local
+sh start.sh
 ```
 
-Check:
-- Elasticsearch: `http://localhost:9200`
-- Kibana: `http://localhost:5601`
+Or follow the [detailed Elasticsearch setup](SETUP_INGESTION.md#1-run-a-local-elasticsearch-cluster).
 
-### 3.2 Pinned demo-friendly compose file
-> Intended for local development + demos, not production.
+Verify: <http://localhost:9200> should return cluster info.
 
-```yaml
-version: "3.8"
-services:
-  es01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: es01
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - xpack.security.enrollment.enabled=false
-      - xpack.security.http.ssl.enabled=false
-      - xpack.security.transport.ssl.enabled=false
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - esdata01:/usr/share/elasticsearch/data
+### 2. Ingest data into Elasticsearch
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://es01:9200
-      - xpack.security.enabled=false
-    ports:
-      - "5601:5601"
-    depends_on:
-      - es01
-
-volumes:
-  esdata01:
-```
-
----
-
-## 4) Python Setup (Streamlit + Scripts)
-
-### 4.1 Create a virtual environment + install deps
 ```bash
-python -m venv .venv
-source .venv/bin/activate   # macOS/Linux
-# .venv\Scripts\activate    # Windows (PowerShell)
-
+cd scripts
+python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-**Recommended `requirements.txt`:**
-```
-streamlit
-pandas
-requests
-elasticsearch
-python-dotenv
+Create `scripts/.env` with your ES credentials:
+```env
+ES_URL=http://localhost:9200
+ES_API_KEY=your_api_key_here
 ```
 
----
-
-## 5) Ingest the Snapshot Dataset
-
-We support a **reset + re-ingest** workflow for stability.
-
-### 5.1 Reset DB and ingest Golden Dataset
+Run both ingestion scripts:
 ```bash
-python scripts/reset_db.py --dataset data/golden --snapshot_version v1
+python ingestion.py --create-index --index csrankings_authors
+python ingest_deadlines.py
 ```
 
-Expected behavior:
-- Deletes the three indices (universities/programs/faculty)
-- Recreates index mappings
-- Bulk-ingests CSV data into Elasticsearch
+See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details.
 
-> If you’re working on the dataset, point to `data/working` instead.
+### 3. Start Open WebUI (frontend + backend)
 
----
-
-## 6) Ollama (Required)
-
-### 6.1 Start Ollama and pull model
+**Frontend** (terminal 1):
 ```bash
-ollama run llama3
+cd open-webui
+cp -RPp .env.example .env
+# Edit .env — add OPENAI_API_KEY, ELASTICSEARCH_URL, ELASTICSEARCH_API_KEY
+npm install
+npm run dev
 ```
 
-Ollama runs a local API at:
-- `http://localhost:11434`
-
----
-
-## 7) Run the Streamlit App
-
+**Backend** (terminal 2):
 ```bash
-streamlit run app/streamlit_app.py
+cd open-webui/backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt -U
+sh dev.sh
 ```
 
-Open:
-- Streamlit UI: `http://localhost:8501`
+See [Setup: Open WebUI](SETUP_OPEN_WEBUI.md) for full details.
+
+### 4. Use the app
+
+1. Open <http://localhost:5173>
+2. Create an admin account (first-time signup)
+3. Select a model (e.g. `gpt-4o-mini`)
+4. Ask questions about faculty, deadlines, or resume fit
 
 ---
 
-## 8) How the App Should Behave (Runtime Rules)
+## Ports
 
-### 8.1 Grounding rules (must not hallucinate)
-- The app retrieves records from Elasticsearch.
-- It packages the retrieved JSON as context.
-- It calls Ollama with a prompt that says **use ONLY this context**.
-- If retrieval returns 0 results:
-  - the assistant must respond: **“Not in our snapshot dataset.”**
-
-### 8.2 Prompt template location
-Store prompt template in:
-- `app/prompts/answer_template.txt`
-
-Recommended output format:
-- 1–2 sentence summary
-- bullet list of results
-- deadlines **bolded**
-- include `source_url` if present
+| Service | Port |
+|---------|------|
+| Elasticsearch | 9200 |
+| Kibana | 5601 |
+| Open WebUI frontend | 5173 |
+| Open WebUI backend | 8080 |
+| Ollama (if used) | 11434 |
 
 ---
 
-## 9) Troubleshooting
+## Troubleshooting
 
-### Elasticsearch won’t start / is slow
-- Increase ES memory:
-  - `ES_JAVA_OPTS=-Xms1g -Xmx1g` (if your laptop can handle it)
-- Logs:
-```bash
-docker compose logs -f es01
-```
+- **ES won't start:** Check Docker is running, increase memory in Docker Desktop settings.
+- **Grad-school tools not working:** Confirm ES is running, indices are populated, and `ELASTICSEARCH_URL` + `ELASTICSEARCH_API_KEY` are in the backend `.env`.
+- **Frontend can't reach backend:** Make sure both are running; check CORS settings.
 
-### Kibana says “server not ready”
-- Wait 30–60 seconds after ES starts.
-- Logs:
-```bash
-docker compose logs -f kibana
-```
-
-### Ollama not responding
-- Confirm model download:
-```bash
-ollama run llama3
-```
-- Verify host/port:
-  - `http://localhost:11434`
-
-### Port conflicts
-- ES uses `9200`
-- Kibana uses `5601`
-- Streamlit uses `8501`
-- Ollama uses `11434`
-
----
-
-## 10) Quick “Fresh Laptop” Checklist (For QA)
-- [ ] `docker compose up -d` works
-- [ ] `pip install -r requirements.txt` works
-- [ ] `python scripts/reset_db.py ...` ingests without errors
-- [ ] `ollama run llama3` works
-- [ ] `streamlit run ...` opens UI and answers a known query
-
----
-
-## References (External)
-- Streamlit Python support: https://docs.streamlit.io/knowledge-base/using-streamlit/sanity-checks  
-- Ollama API: https://docs.ollama.com/api/introduction  
-- Elastic (Docker): https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-with-docker  
-- CSRankings repo + CSV files: https://github.com/emeryberger/CSrankings
+For more details, see the individual setup docs linked above.

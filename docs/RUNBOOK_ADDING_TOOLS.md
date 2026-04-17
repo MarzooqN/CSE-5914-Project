@@ -1,6 +1,6 @@
 # Runbook: Adding and Improving Tools for the Grad-School Assistant
 
-This runbook is a step-by-step, all-in-one guide for adding new tools (or implementing stubs like deadlines) so the model can answer a wider range of questions. It explains where tools live in the code, how they are registered, how Elasticsearch is used, and exactly what to add or change. It is written so that a human or an AI can follow it to implement a new tool or a new index-backed feature.
+This runbook is a step-by-step guide for adding new tools to the Grad Research and Application Assistant. It explains where tools live in the code, how they are registered, how Elasticsearch is used, and exactly what to add or change. It is written so that a human or an AI can follow it to implement a new tool or a new index-backed feature.
 
 ---
 
@@ -12,7 +12,7 @@ This runbook is a step-by-step, all-in-one guide for adding new tools (or implem
 4. [Elasticsearch integration: Config, client, and helpers](#4-elasticsearch-integration-config-client-and-helpers)
 5. [Adding a new tool that uses an existing index](#5-adding-a-new-tool-that-uses-an-existing-index)
 6. [Adding a new tool that needs a new Elasticsearch index](#6-adding-a-new-tool-that-needs-a-new-elasticsearch-index)
-7. [Implementing an existing stub (e.g. deadlines)](#7-implementing-an-existing-stub-eg-deadlines)
+7. [Reference: How deadline tools were implemented](#7-reference-how-deadline-tools-were-implemented)
 8. [Checklist for any new or updated tool](#8-checklist-for-any-new-or-updated-tool)
 9. [Deadlines index structure (reference)](#9-deadlines-index-structure-reference)
 
@@ -35,7 +35,7 @@ Use this as a map. All paths are relative to the **project root** (the directory
 
 | What | File path | What it does |
 |------|-----------|--------------|
-| **Tool implementations** | `open-webui/backend/open_webui/tools/builtin.py` | All builtin tools are async functions here. Grad-school tools: `list_faculty_by_area_and_school`, `list_top_programs_by_area`, `get_program_deadlines`, `filter_programs_by_deadline_and_degree`. Add new tools in the same file (same section or a new section). |
+| **Tool implementations** | `open-webui/backend/open_webui/tools/builtin.py` | All builtin tools are async functions here. Grad-school tools: `list_faculty_by_area_and_school`, `list_top_programs_by_area`, `get_program_deadlines`, `filter_programs_by_deadline_and_degree`, `check_resume_fit`. Add new tools in the same file (same section or a new section). |
 | **Tool registration** | `open-webui/backend/open_webui/utils/tools.py` | `get_builtin_tools()` builds the dict of tools sent to the model. It (1) imports tool functions from `open_webui.tools.builtin`, (2) adds them to a list (e.g. under `ENABLE_GRAD_SCHOOL_TOOLS`), (3) for each function builds a **spec** from the function’s signature and docstring and stores `{ "callable", "spec", "type": "builtin" }`. **You must add the new function to the imports and to the `builtin_functions.extend([...])` list for grad-school tools.** |
 | **Spec generation** | `open-webui/backend/open_webui/utils/tools.py` | `convert_function_to_pydantic_model(func)` turns the function into a Pydantic model using **type hints** and **docstring** (`parse_description` for tool description, `parse_docstring` for `:param x: ...` and `:return: ...`). That model is then converted to an OpenAI function spec. So the **docstring and parameter names/types** are what the model sees. |
 | **Where tools are attached to chat** | `open-webui/backend/open_webui/utils/middleware.py` | In `process_chat_payload()`, when `function_calling == "native"` and the model has `builtin_tools` capability, the code calls `get_builtin_tools(...)` and merges the result into `tools_dict`, then sets `form_data["tools"]` to the list of specs. So once a tool is in `get_builtin_tools()`, it is automatically available for native function calling. |
@@ -171,19 +171,17 @@ Example: a "program deadlines" tool that reads from an index `grad_program_deadl
 
 ---
 
-## 7. Implementing an existing stub (e.g. deadlines)
+## 7. Reference: How deadline tools were implemented
 
-The codebase already has **stub** tools that return a "not implemented" message: `get_program_deadlines` and `filter_programs_by_deadline_and_degree` in `open-webui/backend/open_webui/tools/builtin.py`. To implement them:
+The deadline tools (`get_program_deadlines`, `filter_programs_by_deadline_and_degree`) are **fully implemented** and serve as a reference for adding new index-backed tools. Here is what was done:
 
-1. **Data and index:** Obtain or define deadline data (source, schema). Create an Elasticsearch index (new ingestion script or extension of `scripts/ingestion.py`) with a mapping that matches your queries (e.g. `deadline_date` as `date`, `degree_level` as `keyword`, `school`/`program` as keyword or text).
-2. **Config:** Add `GRAD_SCHOOL_DEADLINES_ES_INDEX` (or similar) in `config.py` as in [Section 6](#6-adding-a-new-tool-that-needs-a-new-elasticsearch-index).
-3. **Helpers:** In `grad_school.py` (or a dedicated module), implement e.g.:
-   - `search_deadlines_by_school(school, degree_level, start_date, end_date, limit)`  
-   - `filter_programs_by_deadline_and_degree(degree_level, start_date, end_date, limit)`  
-   that query the new index using `_get_es_client()` and the new index name.
-4. **Replace stub bodies in builtin.py:** In `get_program_deadlines` and `filter_programs_by_deadline_and_degree`, remove the `return json.dumps({"error": "..."})` stub, call the new helpers, and return `json.dumps(results, ...)` (and handle errors with an `{"error": "..."}` object).
-5. **Registration:** No change needed in `utils/tools.py`—these tools are already in the grad-school `builtin_functions.extend([...])` list.
-6. **Restart and test:** Restart the backend and verify with deadline-related questions.
+1. **Data and index:** Deadline data is stored in `scripts/data/deadlines.jsonl` and ingested by `scripts/ingest_deadlines.py` into the `grad_program_deadlines` ES index.
+2. **Config:** `GRAD_SCHOOL_DEADLINES_ES_INDEX` was added in `config.py` (default: `grad_program_deadlines`).
+3. **Helpers:** `query_programs_by_deadline()` was added in `grad_school.py` — queries the deadlines index using `_get_es_client()` with school, degree, and date-range filters.
+4. **Tool implementations:** `get_program_deadlines` and `filter_programs_by_deadline_and_degree` in `builtin.py` call the helper and return JSON results.
+5. **Registration:** Both tools are in the `builtin_functions.extend([...])` list in `utils/tools.py`.
+
+The **resume fit tool** (`check_resume_fit`) is also fully implemented and demonstrates a tool that does **not** use Elasticsearch — it scores resumes against an in-memory keyword taxonomy defined in `grad_school.py` (`_AREA_KEYWORDS`, `_RESEARCH_SIGNALS`, `_CODING_SIGNALS`). A middleware handler in `middleware.py` (`chat_resume_fit_handler`) also injects resume scores for Ollama compatibility.
 
 ---
 
@@ -209,7 +207,7 @@ Use this to confirm nothing is missed. An AI or human can tick each item.
 | Action | File | Symbol / location |
 |--------|------|--------------------|
 | Add or edit tool implementation | `open-webui/backend/open_webui/tools/builtin.py` | New or existing `async def` in the GRAD-SCHOOL section (or new section). |
-| Register tool | `open-webui/backend/open_webui/utils/tools.py` | Import at top from `open_webui.tools.builtin`; add to `builtin_functions.extend([...])` in the `ENABLE_GRAD_SCHOOL_TOOLS` block (lines 473–482). |
+| Register tool | `open-webui/backend/open_webui/utils/tools.py` | Import at top from `open_webui.tools.builtin`; add to `builtin_functions.extend([...])` in the `ENABLE_GRAD_SCHOOL_TOOLS` block. |
 | Add ES config | `open-webui/backend/open_webui/config.py` | New `GRAD_SCHOOL_*_ES_INDEX` (or similar) near `GRAD_SCHOOL_ES_INDEX`. |
 | Add ES query helpers | `open-webui/backend/open_webui/utils/grad_school.py` | New functions that use `_get_es_client()` and the index name from config. |
 | New index + ingestion | `scripts/ingestion.py` or new script under `scripts/` | New mapping, index creation, and bulk indexing; document in setup/runbook. |

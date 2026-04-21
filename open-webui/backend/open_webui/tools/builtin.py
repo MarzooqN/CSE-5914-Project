@@ -1793,6 +1793,7 @@ async def get_program_deadlines(
 
     try:
         from open_webui.utils.grad_school import query_programs_by_deadline
+        from open_webui.utils.SearchScore import find_deadline_url
 
         results = query_programs_by_deadline(
             school=school,
@@ -1802,7 +1803,17 @@ async def get_program_deadlines(
         )
 
         if not results:
-            return json.dumps({
+            scraped_url = find_deadline_url(university=school, degree=degree_level)
+            temp_list = []
+            temp_list.append(scraped_url)
+            
+            if scraped_url["found"]:
+                return json.dumps({
+                    "message": f"No structured deadline information found for {school!r} ({degree_level.upper()}), but we found a relevant webpage that may have the information: {scraped_url['url']}",
+                    "results": temp_list,
+                })
+            else:
+                return json.dumps({
                 "message": f"No deadline information found for {school!r} ({degree_level.upper()}).",
                 "results": [],
             })

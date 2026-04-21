@@ -152,3 +152,9 @@ opentelemetry-instrumentation-requests==0.60b1
 opentelemetry-instrumentation-logging==0.60b1
 opentelemetry-instrumentation-httpx==0.60b1
 opentelemetry-instrumentation-aiohttp-client==0.60b1
+
+# For scraper
+beautifulsoup4
+lxml
+selenium
+requests

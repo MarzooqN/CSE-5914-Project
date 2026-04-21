@@ -1,0 +1,43 @@
+- Alumni
+- Corporate
+- People
+- My.SiebelSchool
+
+# Application Deadlines
+CS Graduate Program: Ph.D. in Computer Science
+Entry: Fall only
+Application Deadline(s)*: December 15
+Decision Deadline**: March 15
+CS Graduate Program: M.S. in Computer Science
+Entry: Fall only
+Application Deadline(s)*: December 15
+Decision Deadline**: March 15
+CS Graduate Program: M.S. in Bioinformatics
+Entry: Fall & Spring
+Application Deadline(s)*: January 15 (Fall) October 15 (Spring)
+Decision Deadline**: March 15 (Fall) November 15 (Spring)
+CS Graduate Program: Master of Computer Science in Urbana-Champaign
+Entry: Fall & Spring
+Application Deadline(s)*: May 1 (Fall) October 15 (Spring)
+Decision Deadline**: June 30 (Fall) November 15 (Spring)
+CS Graduate Program: Master of Computer Science in Chicago
+Entry: Fall & Spring
+Application Deadline(s)*: May 1 (Fall) October 15 (Spring)
+Decision Deadline**: June 30 (Fall) November 15 (Spring)
+CS Graduate Program: Master of Computer Science Online
+Entry: Fall, Spring & Summer
+Application Deadline(s)*: June 15 (Fall) October 30 (Spring) February 15 (Summer)
+Decision Deadline**: July 15 (Fall) December 10 (Spring) March 31 (Summer)
+CS Graduate Program: 5-year BS-MS Program*
+Entry: Fall only
+Application Deadline(s)*: September 15
+Decision Deadline**: Varies
+CS Graduate Program: 5-year BS-MCS Program*
+Entry: Fall only
+Application Deadline(s)*: March 15
+Decision Deadline**: Varies
+May 1 (Fall) October 15 (Spring)
+* All application materials, including the application fee, must be received by the posted deadline. (Posted deadlines are for 11:59 PM U.S. Central Time Zone.) Late applications will not be accepted, and incomplete applications will be subject to denial.  International applicants are strongly encouraged to submit their applications early to allow sufficient time to seek their student visas.
+Note : We strongly recommend that you and your recommenders not wait until the deadline to submit your application or letters of recommendation. Server traffic around the deadline may cause technical difficulties. It is highly recommended to submit all application materials one month before the deadline to expedite admission decisions.
+*Applications to the Fifth Year Masters Programs are only open to current CS undergraduates enrolled in The Grainger College of Engineering who have junior standing (must have at least one year left of their undergraduate studies after admission into the program).
+** Admissions decisions are released to applicants as the committee finalizes them. This is an ongoing process throughout the period between the application deadline and the decision deadline.

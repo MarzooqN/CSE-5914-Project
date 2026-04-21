@@ -1993,3 +1993,54 @@ async def get_usnews_top_schools(
         return json.dumps(result, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+async def compare_schools_by_area(
+    school_a: str,
+    school_b: str,
+    area: str,
+    count: int = 20,
+    __request__: Request = None,
+    __user__: dict = None,
+) -> str:
+    """
+    Compare two schools by faculty strength in a specific research area.
+    Use this for questions like "Compare CMU and Stanford for security."
+
+    :param school_a: First school name
+    :param school_b: Second school name
+    :param area: Research area such as NLP, security, systems, or machine learning
+    :param count: Maximum number of faculty records to consider per school
+    :return: JSON comparison containing faculty count, sample faculty, top areas, and top venues for each school
+    """
+    log.info(
+        "grad_school tool called: compare_schools_by_area(school_a=%r, school_b=%r, area=%r, count=%s)",
+        school_a, school_b, area, count
+    )
+
+    if __request__ is None:
+        return json.dumps({"error": "Request context not available"})
+
+    try:
+        from open_webui.utils.grad_school import (
+            normalize_area,
+            compare_schools_by_area_data,
+        )
+
+        area_keys = normalize_area(area)
+        if not area_keys:
+            return json.dumps(
+                {"error": f"Unknown research area: {area!r}. Try e.g. NLP, security, machine learning, systems."}
+            )
+
+        results = compare_schools_by_area_data(
+            school_a=school_a,
+            school_b=school_b,
+            area_keys=area_keys,
+            limit=count,
+        )
+        return json.dumps(results, ensure_ascii=False)
+
+    except Exception as e:
+        log.exception(f"compare_schools_by_area error: {e}")
+        return json.dumps({"error": str(e)}, ensure_ascii=False)

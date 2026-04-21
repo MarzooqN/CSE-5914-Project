@@ -79,6 +79,7 @@ from open_webui.tools.builtin import (
     check_resume_fit,
     get_usnews_school_ranking,
     get_usnews_top_schools,
+    compare_schools_by_area,
 )
 
 import copy
@@ -484,6 +485,7 @@ def get_builtin_tools(
                 check_resume_fit,
                 get_usnews_school_ranking,
                 get_usnews_top_schools,
+                compare_schools_by_area,
             ]
         )
 
@@ -1050,3 +1052,5 @@ def get_tool_server_url(url: Optional[str], path: str) -> str:
         # Ensure the path starts with a slash
         path = f"/{path}"
     return f"{url}{path}"
+
+

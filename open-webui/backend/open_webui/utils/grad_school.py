@@ -7,6 +7,7 @@ Index schema matches scripts/ingestion.py (csrankings_authors):
 
 import logging
 import re as _re
+from collections import Counter
 from typing import Any, Optional
 
 from open_webui.config import (
@@ -781,3 +782,43 @@ def get_usnews_top_schools(year: int, count: int = 20):
     resp = es.search(index=index, body=query)
     hits = resp.get("hits", {}).get("hits", [])
     return [h["_source"] for h in hits]
+
+def compare_schools_by_area_data(
+    school_a: str,
+    school_b: str,
+    area_keys: list[str],
+    limit: int = 20,
+) -> dict:
+    results_a = search_faculty_by_school_and_areas(
+        school=school_a,
+        area_keys=area_keys,
+        limit=limit,
+    )
+    results_b = search_faculty_by_school_and_areas(
+        school=school_b,
+        area_keys=area_keys,
+        limit=limit,
+    )
+
+    def summarize(results, school_name):
+        area_counter = Counter()
+        venue_counter = Counter()
+
+        for r in results:
+            for a in r.get("top_areas", []):
+                area_counter[a] += 1
+            for v in r.get("top_venues", []):
+                venue_counter[v] += 1
+
+        return {
+            "name": school_name,
+            "faculty_count": len(results),
+            "sample_faculty": [r.get("name") for r in results[:5]],
+            "top_areas": [x for x, _ in area_counter.most_common(5)],
+            "top_venues": [x for x, _ in venue_counter.most_common(5)],
+        }
+
+    return {
+        "school_a": summarize(results_a, school_a),
+        "school_b": summarize(results_b, school_b),
+    }

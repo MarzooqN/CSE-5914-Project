@@ -1,3 +1,6 @@
+from pathlib import Path
+import tempfile
+
 import shutil
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
@@ -310,17 +313,24 @@ def html_to_llm_text(html):
 def scrape_url(url: str):
     rendered_html = fetch_rendered_html(url)
 
+    debug_dir = Path(tempfile.gettempdir()) / "open_webui_deadline_scraper"
+    debug_dir.mkdir(parents=True, exist_ok=True)
+
+    rendered_html_path = debug_dir / "page_rendered.html"
+    html_path = debug_dir / "page.txt"
+    text_path = debug_dir / "page_text.txt"
+
     # 1) Save the fully rendered HTML (useful for debugging)
-    with open("page_rendered.html", "w", encoding="utf-8") as f:
+    with open(rendered_html_path, "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
     #2) Save the html page
-    with open("page.txt","w", encoding="utf=8") as f:
+    with open(html_path, "w", encoding="utf-8") as f:
         f.write(rendered_html)
 
     # 2) Save cleaned text (useful for LLM / keyword search)
     cleaned_text = html_to_llm_text(rendered_html)
-    with open("page_text.txt", "w", encoding="utf-8") as f:
+    with open(text_path, "w", encoding="utf-8") as f:
         f.write(cleaned_text)
 
-    print("Saved: page_rendered.html and page_text.txt")
+    print(f"Saved scraper debug files to: {debug_dir}")

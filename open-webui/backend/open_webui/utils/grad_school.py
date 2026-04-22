@@ -17,6 +17,7 @@ from open_webui.config import (
     GRAD_SCHOOL_ES_INDEX,
     GRAD_SCHOOL_DEADLINES_ES_INDEX,
 )
+from open_webui.utils.WebRequest import UNIVERSITY_ALIASES
 
 log = logging.getLogger(__name__)
 
@@ -93,6 +94,45 @@ KNOWN_PARENT_AREAS = frozenset(
         "robotics", "visualization",
     }
 )
+
+
+def _normalize_deadline_school_name(value: str) -> str:
+    normalized = _re.sub(r"[^a-z0-9\s]", " ", (value or "").lower())
+    return _re.sub(r"\s+", " ", normalized).strip()
+
+
+def _deadline_school_candidates(school: str) -> list[str]:
+    normalized = _normalize_deadline_school_name(school)
+    if not normalized:
+        return []
+
+    candidates = {normalized}
+
+    for canonical, aliases in UNIVERSITY_ALIASES.items():
+        canonical_normalized = _normalize_deadline_school_name(canonical)
+        alias_normalized = {
+            _normalize_deadline_school_name(alias)
+            for alias in aliases
+            if _normalize_deadline_school_name(alias)
+        }
+
+        if normalized == canonical_normalized or normalized in alias_normalized:
+            candidates.add(canonical_normalized)
+            candidates.update(alias_normalized)
+
+    return sorted(candidates)
+
+
+def _normalize_deadline_degree_level(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+
+    normalized = value.strip().lower()
+    if normalized in {"phd", "ph.d", "ph.d.", "doctorate", "doctoral", "dphil"}:
+        return "phd"
+    if normalized in {"masters", "master's", "master", "ms", "m.s.", "m.eng", "meng"}:
+        return "ms"
+    return normalized or None
 
 
 def normalize_area(user_text: str) -> list[str]:
@@ -263,11 +303,15 @@ def query_programs_by_deadline(
 
     # Add school filter if provided
     if school:
-        must.append({"term": {"school": school.strip().lower()}})
+        school_candidates = _deadline_school_candidates(school)
+        if school_candidates:
+            must.append({"terms": {"school": school_candidates}})
 
     # Add degree level filter if provided
     if degree_level:
-        must.append({"term": {"degree_level": degree_level.strip().lower()}})
+        normalized_degree_level = _normalize_deadline_degree_level(degree_level)
+        if normalized_degree_level:
+            must.append({"term": {"degree_level": normalized_degree_level}})
 
     # Add date range filter if provided
     if start_date or end_date:

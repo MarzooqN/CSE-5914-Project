@@ -1,4 +1,6 @@
 import re
+from pathlib import Path
+import tempfile
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from open_webui.utils.Scraping import scrape_url, table_to_text
@@ -9,8 +11,9 @@ from open_webui.utils.WebRequest import get_top_link
 # CONFIG
 # ============================================================
 
-HTML_FILE = "page.txt"
-TEXT_FILE = "page_text.txt"
+SCRAPER_DEBUG_DIR = Path(tempfile.gettempdir()) / "open_webui_deadline_scraper"
+HTML_FILE = SCRAPER_DEBUG_DIR / "page.txt"
+TEXT_FILE = SCRAPER_DEBUG_DIR / "page_text.txt"
 TOP_K = 2
 MIN_VALID_YEAR = 2025
 

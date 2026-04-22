@@ -23,6 +23,10 @@ from open_webui.utils.WebRequest import UNIVERSITY_ALIASES
 
 log = logging.getLogger(__name__)
 
+
+class GradSchoolDataUnavailableError(RuntimeError):
+    pass
+
 # User-facing area names / synonyms -> parent area keys (from ingestion.py FALLBACK_PARENT_MAP / KNOWN_PARENT_AREAS)
 AREA_ALIASES: dict[str, list[str]] = {
     "ai": ["ai"],
@@ -169,6 +173,23 @@ def _get_es_client():
     return Elasticsearch(**kwargs)
 
 
+def _raise_es_unavailable(operation: str, error: Exception):
+    error_text = str(error)
+
+    if "index_not_found_exception" in error_text or "no such index" in error_text:
+        log.exception("grad_school %s: %s", operation, error)
+        raise GradSchoolDataUnavailableError(
+            f"Elasticsearch index is missing while running {operation}. "
+            f"Run the required ingestion for this dataset: {error}"
+        ) from error
+
+    log.exception("grad_school %s: %s", operation, error)
+    raise GradSchoolDataUnavailableError(
+        f"Elasticsearch is unavailable while running {operation}. "
+        f"Check ELASTICSEARCH_URL and ensure the cluster is running: {error}"
+    ) from error
+
+
 def search_faculty_by_school_and_areas(
     school: str,
     area_keys: list[str],
@@ -207,8 +228,7 @@ def search_faculty_by_school_and_areas(
     try:
         resp = es.search(index=index, body=query)
     except Exception as e:
-        log.exception("grad_school search_faculty_by_school_and_areas: %s", e)
-        return []
+        _raise_es_unavailable("search_faculty_by_school_and_areas", e)
 
     out = []
     for hit in resp.get("hits", {}).get("hits", []):
@@ -269,8 +289,7 @@ def rank_programs_by_area(
     try:
         resp = es.search(index=index, body=query)
     except Exception as e:
-        log.exception("grad_school rank_programs_by_area: %s", e)
-        return []
+        _raise_es_unavailable("rank_programs_by_area", e)
 
     buckets = (resp.get("aggregations") or {}).get("by_dept", {}).get("buckets", [])
     return [
@@ -335,8 +354,7 @@ def query_programs_by_deadline(
     try:
         resp = es.search(index=index, body=query)
     except Exception as e:
-        log.exception("grad_school query_programs_by_deadline: %s", e)
-        return []
+        _raise_es_unavailable("query_programs_by_deadline", e)
 
     out = []
     for hit in resp.get("hits", {}).get("hits", []):
@@ -756,7 +774,10 @@ def get_usnews_ranking_for_school_year(school: str, year: int):
         ],
     }
 
-    resp = es.search(index=index, body=query)
+    try:
+        resp = es.search(index=index, body=query)
+    except Exception as e:
+        _raise_es_unavailable("get_usnews_ranking_for_school_year", e)
     hits = resp.get("hits", {}).get("hits", [])
     return hits[0]["_source"] if hits else None
 
@@ -779,7 +800,10 @@ def get_usnews_top_schools(year: int, count: int = 20):
         ],
     }
 
-    resp = es.search(index=index, body=query)
+    try:
+        resp = es.search(index=index, body=query)
+    except Exception as e:
+        _raise_es_unavailable("get_usnews_top_schools", e)
     hits = resp.get("hits", {}).get("hits", [])
     return [h["_source"] for h in hits]
 

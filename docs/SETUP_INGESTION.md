@@ -119,11 +119,24 @@ python ingestion.py --dry-run --dry-run-count 5
 
 This downloads the CSRankings data and prints a few sample aggregated documents; it does not connect to Elasticsearch.
 
+## 5.1 Run the US News rankings ingestion
+
+The repository includes a checked-in long-format CSV for the US News top 10 schools from 2020 to 2026 at `scripts/data/usnews_top10_2020_2026_long.csv`.
+
+With the same `scripts/` venv activated and Elasticsearch running, ingest it with:
+
+```bash
+python ingest_usnews_rankings.py --input data/usnews_top10_2020_2026_long.csv --create-index
+```
+
+This creates and populates the `usnews_rankings` index used by the US News ranking tools in Open WebUI.
+
 ---
 
 ## 6. Verify
 
 - **Local Elasticsearch:** Open <http://localhost:9200/csrankings_authors/_count> in a browser or use curl; you should see a count of indexed documents.
 - **Kibana:** If you started Kibana, use Dev Tools or Index Management to inspect the `csrankings_authors` index.
+- For US News rankings, also verify the `usnews_rankings` index exists and contains documents.
 
 Once the index is populated, you can proceed to [Setup: Open WebUI](SETUP_OPEN_WEBUI.md) to run the UI and grad-school tools.

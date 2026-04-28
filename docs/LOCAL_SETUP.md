@@ -68,6 +68,7 @@ See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details.
 cd open-webui
 cp -RPp .env.example .env
 # Edit .env — add OPENAI_API_KEY, OPENAI_API_BASE_URL, ELASTICSEARCH_API_KEY, SERPAPI_API_KEY
+# Use OPENAI_API_BASE_URL='https://api.openai.com/v1'
 npm install
 npm run dev
 ```

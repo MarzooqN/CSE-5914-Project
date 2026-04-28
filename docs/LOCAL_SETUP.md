@@ -42,7 +42,7 @@ Keep the API key in a safe place; do not commit it to git.
 
 ```bash
 cd scripts
-python3 -m venv venv && source venv/bin/activate
+python3.11 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -55,7 +55,8 @@ ES_API_KEY=your_api_key_here
 Run both ingestion scripts:
 ```bash
 python ingestion.py --create-index --index csrankings_authors
-python ingest_deadlines.py
+python ingest_deadlines.py --create-index
+python ingest_usnews_rankings.py --input data/usnews_top10_2020_2026_long.csv --create-index
 ```
 
 See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details.

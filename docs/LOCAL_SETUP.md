@@ -17,16 +17,26 @@ This is a quick-start guide to get the full stack running locally. Each step lin
 
 ### 1. Start Elasticsearch
 
-Use the Elastic start-local script or the provided Docker Compose:
+You must have Elasticsearch running before ingesting data. For **local development**, the easiest way is Elastic’s one-command setup:
 
-```bash
-cd elastic-start-local
-sh start.sh
-```
+**[Local development installation (quickstart)](https://www.elastic.co/docs/deploy-manage/deploy/self-managed/local-development-installation-quickstart)**
 
-Or follow the [detailed Elasticsearch setup](SETUP_INGESTION.md#1-run-a-local-elasticsearch-cluster).
+1. Install [Docker Compose](https://docs.docker.com/compose/install/) (Docker Desktop or Docker Engine).
+2. In a terminal, run:
+   ```bash
+   curl -fsSL https://elastic.co/start-local | sh
+   ```
+3. When the script finishes:
+   - **Elasticsearch**: <http://localhost:9200>
+   - **Kibana** (optional): <http://localhost:5601>
 
-Verify: <http://localhost:9200> should return cluster info.
+**Important:** Write down the api key. You will use the same API key in:
+- This ingestion script (`.env` in `scripts/`)
+- Open WebUI backend (`.env` in `open-webui/` or `open-webui/backend/`) for the grad-school tools
+
+Keep the API key in a safe place; do not commit it to git.
+
+---
 
 ### 2. Ingest data into Elasticsearch
 

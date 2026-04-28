@@ -67,7 +67,7 @@ See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details.
 ```bash
 cd open-webui
 cp -RPp .env.example .env
-# Edit .env — add OPENAI_API_KEY, ELASTICSEARCH_URL, ELASTICSEARCH_API_KEY, SERPAPI_API_KEY
+# Edit .env — add OPENAI_API_KEY, OPENAI_API_BASE_URL, ELASTICSEARCH_API_KEY, SERPAPI_API_KEY
 npm install
 npm run dev
 ```
@@ -75,7 +75,7 @@ npm run dev
 **Backend** (terminal 2):
 ```bash
 cd open-webui/backend
-python3 -m venv venv && source venv/bin/activate
+python3.11 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt -U
 sh dev.sh
 ```

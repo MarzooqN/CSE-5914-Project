@@ -67,7 +67,7 @@ See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details.
 ```bash
 cd open-webui
 cp -RPp .env.example .env
-# Edit .env — add OPENAI_API_KEY, ELASTICSEARCH_URL, ELASTICSEARCH_API_KEY
+# Edit .env — add OPENAI_API_KEY, ELASTICSEARCH_URL, ELASTICSEARCH_API_KEY, SERPAPI_API_KEY
 npm install
 npm run dev
 ```

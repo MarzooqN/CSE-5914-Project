@@ -20,12 +20,16 @@ The assistant exposes five builtin tools that the LLM calls via native function 
 | `get_program_deadlines` | Look up application deadlines for a school's programs | `grad_program_deadlines` ES index |
 | `filter_programs_by_deadline_and_degree` | Filter programs by deadline range and degree level (MS/PhD) | `grad_program_deadlines` ES index |
 | `check_resume_fit` | Score a resume against a target research area (keyword-based, 0–100) | No ES needed (in-memory taxonomy) |
+| `get_usnews_top_schools` | Get the top N US News National University rankings for a given year | `usnews_rankings` ES index |
+| `compare_schools_by_area` | Compare two schools by faculty strength in a specific research area | `csrankings_authors` ES index |
 
 Example questions:
 - "Which faculty at CMU do NLP?"
 - "What are the PhD deadlines for Stanford?"
 - "Show me top programs in machine learning with deadlines before March 2026."
 - "How well does my resume fit computer vision?" *(paste resume text)*
+- "What are the top 10 universities in 2026?"
+- "Compare CMU and Stanford for security."
 
 ---
 
@@ -62,6 +66,7 @@ The model decides when to call a tool based on the user's question. Tool results
 | **OpenAI API** or **Ollama** | LLM for generating responses |
 | **Python** | Ingestion scripts + backend tools |
 | **CSRankings** | Source dataset for faculty and program data |
+| **SERP API** | Used for live scraping |
 
 ---
 
@@ -101,7 +106,7 @@ The model decides when to call a tool based on the user's question. Tool results
 
 ### `csrankings_authors` (faculty + program data)
 
-Aggregated from CSRankings. One document per author with their school, research areas, top venues, homepage, and Google Scholar URL. Used by `list_faculty_by_area_and_school` and `list_top_programs_by_area`.
+Aggregated from CSRankings. One document per author with their school, research areas, top venues, homepage, and Google Scholar URL. Used by `list_faculty_by_area_and_school`, `list_top_programs_by_area`, and `compare_schools_by_area`.
 
 Ingested by: `scripts/ingestion.py`
 
@@ -115,7 +120,7 @@ Ingested by: `scripts/ingest_deadlines.py` (from `scripts/data/deadlines.jsonl`)
 
 One document per university ranking entry. Fields include university name, state, IPEDS, year, and rank. Used by `get_usnews_top_schools`.
 
-Ingested by: `scripts/ingest_usnews_rankings.py` (from `scripts/data/usnews_top10_2020_2026_long.csv`)
+Ingested by: `scripts/ingest_usnews_rankings.py` (from [`scripts/data/usnews_top10_2020_2026_long.csv`](https://github.com/MarzooqN/CSE-5914-Project/tree/changes/scripts/data/usnews_top10_2020_2026_long.csv))
 
 ---
 
@@ -130,13 +135,14 @@ Key environment variables (set in `open-webui/backend/.env` or `open-webui/.env`
 | `ELASTICSEARCH_API_KEY` | *(none)* | API key for ES authentication |
 | `GRAD_SCHOOL_ES_INDEX` | `csrankings_authors` | Index for faculty/program data |
 | `GRAD_SCHOOL_DEADLINES_ES_INDEX` | `grad_program_deadlines` | Index for deadline data |
+| `GRAD_SCHOOL_USNEWS_RANKINGS_ES_INDEX` | `usnews_rankings` | Index for US News rankings |
 
 ---
 
 ## Quick Start
 
 1. **Start Elasticsearch** — see [SETUP_INGESTION.md](SETUP_INGESTION.md#1-run-a-local-elasticsearch-cluster)
-2. **Ingest data** — run `ingestion.py` and `ingest_deadlines.py` per [SETUP_INGESTION.md](SETUP_INGESTION.md#5-run-the-ingestion-script)
+2. **Ingest data** — run `ingestion.py`, `ingest_deadlines.py`, and `ingest_usnews_rankings.py` per [SETUP_INGESTION.md](SETUP_INGESTION.md#5-run-the-ingestion-script)
 3. **Start Open WebUI** — see [SETUP_OPEN_WEBUI.md](SETUP_OPEN_WEBUI.md)
 4. **Chat** — select a model (e.g. `gpt-4o-mini`) and ask about faculty, deadlines, or resume fit
 

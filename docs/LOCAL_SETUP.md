@@ -109,5 +109,6 @@ See [Setup: Open WebUI](SETUP_OPEN_WEBUI.md) for full details.
 - **ES won't start:** Check Docker is running, increase memory in Docker Desktop settings.
 - **Grad-school tools not working:** Confirm ES is running, indices are populated, and `ELASTICSEARCH_URL` + `ELASTICSEARCH_API_KEY` are in the backend `.env`.
 - **Frontend can't reach backend:** Make sure both are running; check CORS settings.
+- See [README](README.md) on how to get OpenAI API key and Serp API key
 
 For more details, see the individual setup docs linked above.

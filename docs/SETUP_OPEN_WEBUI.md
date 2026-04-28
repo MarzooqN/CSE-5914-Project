@@ -36,6 +36,7 @@ Edit `.env` and set values for your environment (e.g. API base URL, backend URL)
 - **Elasticsearch (for grad-school tools):**  
   - `ELASTICSEARCH_URL` — e.g. `http://localhost:9200` for local ES.  
   - If your cluster uses an API key: `ELASTICSEARCH_API_KEY` — use the **same API key** you used for the ingestion script and stored safely.
+- **SERP Api:** Set the Serp API key to your private SERP API key. (See README.md to see how to get the key)
 
 **Do not push your `.env` file or any credentials to git.**
 

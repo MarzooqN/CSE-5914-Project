@@ -7,7 +7,7 @@ This is a quick-start guide to get the full stack running locally. Each step lin
 ## Prerequisites
 
 - **Docker Desktop** (with Docker Compose)
-- **Python 3.11+**
+- **Python 3.11**
 - **Node.js 22.10+** and **npm**
 - An **OpenAI API key** (or **Ollama** installed locally)
 

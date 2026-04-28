@@ -131,6 +131,16 @@ python ingest_usnews_rankings.py --input data/usnews_top10_2020_2026_long.csv --
 
 This creates and populates the `usnews_rankings` index used by the US News ranking tools in Open WebUI.
 
+## 5.2 Run deadline ingestion
+
+With the same `scripts/` venv activated and Elasticsearch running, ingest it with:
+
+```bash
+python ingest_deadlines.py --create-index
+```
+
+This creates and populates the `grad_program_deadlines` index used by the deadline tools in Open WebUI.
+
 ---
 
 ## 6. Verify

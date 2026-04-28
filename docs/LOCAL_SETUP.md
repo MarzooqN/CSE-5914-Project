@@ -162,5 +162,7 @@ Click the **model name** in the top-left of the chat, then select **Local** in t
 - **ES won't start:** Check Docker is running, increase memory in Docker Desktop settings.
 - **Grad-school tools not working:** Confirm ES is running, indices are populated, and `ELASTICSEARCH_URL` + `ELASTICSEARCH_API_KEY` are in the backend `.env`.
 - **Frontend can't reach backend:** Make sure both are running; check CORS settings.
+- See [Setup: Ingestion Script](SETUP_INGESTION.md) for full details on ingestion.
+- See [Setup: Open WebUI](SETUP_OPEN_WEBUI.md) for full details on backend setup. 
 
 For more details, see the individual setup docs linked above.

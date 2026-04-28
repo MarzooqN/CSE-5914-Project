@@ -4,7 +4,7 @@ This guide walks you through setting up and running the **CSRankings → Elastic
 
 ## Prerequisites
 
-- **Python 3** (3.10+ recommended)
+- **Python 3.11** 
 - **A running Elasticsearch cluster** (local or Elastic Cloud). The Open WebUI grad-school tools expect this index to exist.
 
 ---

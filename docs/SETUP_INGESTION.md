@@ -38,7 +38,7 @@ From the **project root** (the directory that contains `scripts/` and `open-webu
 
 ```bash
 cd scripts
-python3 -m venv venv
+python3.11 -m venv venv
 ```
 
 Activate the venv:

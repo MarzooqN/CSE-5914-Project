@@ -8,7 +8,7 @@ This guide walks you through setting up the **Open WebUI** frontend and backend 
 
 ## Prerequisites
 
-- **Python** 3.11 or higher (for backend)
+- **Python** 3.11
 - **Node.js** 22.10 or higher (for frontend)
 - **npm** (usually with Node.js)
 

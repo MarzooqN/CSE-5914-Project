@@ -92,7 +92,7 @@ cd open-webui/backend
 **Option A – Python venv (recommended):**
 
 ```bash
-python3 -m venv venv
+python3.11 -m venv venv
 ```
 
 Activate it:

@@ -91,6 +91,7 @@ The model decides when to call a tool based on the user's question. Tool results
             ├── utils/tools.py             # Tool registration
             ├── utils/grad_school.py       # ES helpers + resume scoring
             ├── utils/middleware.py         # Chat middleware (resume fit injection)
+            ├── utils/SearchScore.py        # Scraper for deadline information that is not available
             └── config.py                  # Config (ES URL, index names, feature flags)
 ```
 
@@ -109,6 +110,12 @@ Ingested by: `scripts/ingestion.py`
 One document per program deadline entry. Fields include school, program, degree level, deadline date, term, and source URL. Used by `get_program_deadlines` and `filter_programs_by_deadline_and_degree`.
 
 Ingested by: `scripts/ingest_deadlines.py` (from `scripts/data/deadlines.jsonl`)
+
+### `usnews_rankings` (university rankings)
+
+One document per university ranking entry. Fields include university name, state, IPEDS, year, and rank. Used by `get_usnews_top_schools`.
+
+Ingested by: `scripts/ingest_usnews_rankings.py` (from `scripts/data/usnews_top10_2020_2026_long.csv`)
 
 ---
 

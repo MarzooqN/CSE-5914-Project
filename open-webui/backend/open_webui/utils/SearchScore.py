@@ -424,28 +424,10 @@ def score_link(anchor_text: str, full_url: str, config: dict) -> tuple[int, list
     score = 0
     matched_labels = []
 
-    # for pts, group in config["priority_groups"]:
-    #     if group.issubset(tokens):
-    #         score += pts
-    #         matched_labels.append(f"PRIORITY:{sorted(group)}")
-
     for pts, group in BONUS_GROUPS:
         if group.issubset(tokens):
             score += pts
             matched_labels.append(f"BONUS:{sorted(group)}")
-
-    # if "graduate" in tokens:
-    #     score += 12
-    # if "admissions" in tokens or "admission" in tokens:
-    #     score += 18
-    # if "cs" in tokens or "cse" in tokens or "computer science" in tokens:
-    #     score += 15
-    # if "how-to-apply" in tokens:
-    #     score += 60
-    # if "application-requirements" in tokens:
-    #     score += 60
-    # if "apply-to" in tokens:
-    #     score += 60
 
     for kw in config["positive_keywords"]:
         if kw in tokens:
@@ -464,33 +446,7 @@ def score_link(anchor_text: str, full_url: str, config: dict) -> tuple[int, list
             score -= 100
             matched_labels.append(f"ANTI:{kw}(-100)")
 
-    # Program-specific boosts
-    # if config["name"] == "MS":
-    #     if "ms" in tokens or "master" in tokens or "masters" in tokens:
-    #         score += 35
-    #         matched_labels.append("TARGET:MS")
-    # elif config["name"] == "PhD":
-    #     if "phd" in tokens or "doctoral" in tokens or "doctorate" in tokens:
-    #         score += 35
-    #         matched_labels.append("TARGET:PHD")
-
     path_norm = normalize_text(parsed.path)
-
-    # if "deadline" in path_norm or "deadlines" in path_norm:
-    #     score += 40
-    #     matched_labels.append("PATH:deadline")
-    # if "admission" in path_norm or "admissions" in path_norm:
-    #     score += 25
-    #     matched_labels.append("PATH:admissions")
-    # if "prospective" in path_norm:
-    #     score += 18
-    #     matched_labels.append("PATH:prospective")
-    # if "graduate" in path_norm:
-    #     score += 15
-    #     matched_labels.append("PATH:graduate")
-    # if "apply" in path_norm or "application" in path_norm:
-    #     score += 20
-    #     matched_labels.append("PATH:apply/application")
 
     negative_hits = []
     anchor_norm = normalize_text(anchor_text)
@@ -499,22 +455,6 @@ def score_link(anchor_text: str, full_url: str, config: dict) -> tuple[int, list
         neg_norm = normalize_text(neg)
         if neg_norm in path_norm or neg_norm in anchor_norm or neg_norm in tokens:
             negative_hits.append(neg)
-
-    # for neg in negative_hits:
-    #     if neg in {"first-year", "undergraduate", "transfer", "international","data science", "electrical engineering", "civil engineering"}:
-    #         score -= 100
-    #     elif neg in {"bs/ms", "b.s./m.s."}:
-    #         score -= 50
-    #     elif neg in {"certificate", "certificates", "minor"}:
-    #         score -= 40
-    #     elif neg in {"faculty", "staff", "people", "alumni"}:
-    #         score -= 30
-    #     elif neg in {"research", "areas"}:
-    #         score -= 20
-    #     else:
-    #         score -= 15
-
-    #     matched_labels.append(f"PENALTY:{neg}")
 
     for neg in negative_hits:
         score -= 1000

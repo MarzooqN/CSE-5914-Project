@@ -154,3 +154,4 @@ Key environment variables (set in `open-webui/backend/.env` or `open-webui/.env`
 - [Elasticsearch (Docker)](https://www.elastic.co/docs/deploy-manage/deploy/self-managed/install-elasticsearch-with-docker)
 - [CSRankings](https://github.com/emeryberger/CSrankings)
 - [Ollama API](https://docs.ollama.com/api/introduction)
+- [SERP API](https://serpapi.com)

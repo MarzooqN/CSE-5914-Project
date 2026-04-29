@@ -38,7 +38,7 @@ You must have Elasticsearch running before ingesting data. For **local developme
 **[Local development installation (quickstart)](https://www.elastic.co/docs/deploy-manage/deploy/self-managed/local-development-installation-quickstart)**
 
 1. Install [Docker Compose](https://docs.docker.com/compose/install/) (Docker Desktop or Docker Engine).
-2. In a terminal, run:
+2. In a terminal, run (Run this command in the home (~) directory):
    ```bash
    curl -fsSL https://elastic.co/start-local | sh
    ```

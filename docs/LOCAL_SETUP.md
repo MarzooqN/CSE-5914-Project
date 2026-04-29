@@ -25,7 +25,7 @@ This is a quick-start guide to get the full stack running locally. Each step lin
 
 #### SerpAPI Key
 
-1. Go to [https://serpapi.com](https://serpapi.com) and log in. Create an account if you do not have one.
+1. Go to [https://serpapi.com](https://serpapi.com) and log in. Create an account if you do not have one (Select the Free plan)
 2. After logging in, your private key will be present on the home page — save that for later.
 3. To use SerpAPI, you will also need **Mozilla Firefox** installed. You will still be able to prompt the model without it, however if you would like the model to scrape for information live then Firefox is required. You can install it at [https://www.firefox.com/en-US/](https://www.firefox.com/en-US/).
 
@@ -86,6 +86,8 @@ cp -RPp .env.example .env
 # Edit .env — add OPENAI_API_KEY, OPENAI_API_BASE_URL, ELASTICSEARCH_API_KEY, SERPAPI_API_KEY
 # Use OPENAI_API_BASE_URL='https://api.openai.com/v1'
 npm install
+# If you see compatibility warnings, try:
+# npm install --force
 npm run dev
 ```
 

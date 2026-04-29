@@ -2,7 +2,7 @@ import re
 import requests
 from urllib.parse import urlparse
 
-SERPAPI_API_KEY = "Your SerpAPI Key Here"
+from open_webui.config import SERPAPI_API_KEY
 
 # ============================================================
 # CS DEPARTMENT HOMEPAGE SCORING
@@ -279,78 +279,6 @@ def score_cs_department_result(result: dict, university_name: str = "") -> tuple
             break
 
     return score, labels
-
-# ============================================================
-# SERPAPI SEARCH
-# ============================================================
-
-# def extract_edu_root(hits: list[dict]) -> str | None:
-#     """
-#     From SerpAPI results, return the first canonical .edu root URL.
-#     Example:
-#         https://www.cs.stanford.edu/people/faculty
-#     becomes:
-#         https://www.cs.stanford.edu/
-#     """
-#     for h in hits:
-#         url = h.get("url")
-#         if not url:
-#             continue
-
-#         try:
-#             parsed = urlparse(url)
-#             host = parsed.netloc.lower()
-
-#             if not host.endswith(".edu"):
-#                 continue
-
-#             return f"https://{host}/"
-
-#         except Exception:
-#             continue
-
-#     return None
-
-# def get_university_root(University_Name: str) -> str | None:
-#     search_query = f"{University_Name} Computer Science Department"
-
-#     print("Search query:")
-#     print(search_query)
-#     print("=" * 60)
-
-#     hits = serpapi_google_search(search_query, num_results=1)
-
-#     if not hits:
-#         print("No results found.")
-#     else:
-#         print("Top Results:")
-#         print("=" * 60)
-
-#         for i, h in enumerate(hits, start=1):
-#            title = h.get("title", "N/A")
-#            url = h.get("url", "N/A")
-#            snippet = h.get("snippet", "N/A")
-
-#            print(f"{i}. {title}")
-#            print(f"   URL     : {url}")
-#            print(f"   Snippet : {snippet}")
-#            print("-" * 60)
-        
-#         root_url = extract_edu_root(hits)
-#         if root_url:
-#            print("Canonical .edu root found:")
-#            print(root_url)
-#         else:
-#             print("No valid .edu root found.")
-        
-#         return root_url
-
-# def is_edu_url(url: str) -> bool:
-#     try:
-#         host = urlparse(url).netloc.lower()
-#         return host.endswith(".edu") or ".edu." in host
-#     except Exception:
-#         return False
 
 def serpapi_google_search(query: str, num_results: int = 1) -> list[dict]:
     """

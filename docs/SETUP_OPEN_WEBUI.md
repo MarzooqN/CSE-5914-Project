@@ -8,7 +8,7 @@ This guide walks you through setting up the **Open WebUI** frontend and backend 
 
 ## Prerequisites
 
-- **Python** 3.11 or higher (for backend)
+- **Python** 3.11
 - **Node.js** 22.10 or higher (for frontend)
 - **npm** (usually with Node.js)
 
@@ -32,10 +32,11 @@ cp -RPp .env.example .env
 
 Edit `.env` and set values for your environment (e.g. API base URL, backend URL). For local dev, defaults are often enough; add your **OpenAI API key** and **Elastic Search API Key** and other credentials as needed.
 
-- **OpenAI:** `OPENAI_API_KEY` so the UI can call a model.
+- **OpenAI:** `OPENAI_API_KEY` so the UI can call a model. Use OPENAI_API_BASE_URL='https://api.openai.com/v1' for base url.
 - **Elasticsearch (for grad-school tools):**  
   - `ELASTICSEARCH_URL` — e.g. `http://localhost:9200` for local ES.  
   - If your cluster uses an API key: `ELASTICSEARCH_API_KEY` — use the **same API key** you used for the ingestion script and stored safely.
+- **SERP Api:** Set the Serp API key to your private SERP API key. (See README.md to see how to get the key)
 
 **Do not push your `.env` file or any credentials to git.**
 
@@ -91,7 +92,7 @@ cd open-webui/backend
 **Option A – Python venv (recommended):**
 
 ```bash
-python3 -m venv venv
+python3.11 -m venv venv
 ```
 
 Activate it:

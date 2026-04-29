@@ -4,7 +4,7 @@ This guide walks you through setting up and running the **CSRankings → Elastic
 
 ## Prerequisites
 
-- **Python 3** (3.10+ recommended)
+- **Python 3.11** 
 - **A running Elasticsearch cluster** (local or Elastic Cloud). The Open WebUI grad-school tools expect this index to exist.
 
 ---
@@ -38,7 +38,7 @@ From the **project root** (the directory that contains `scripts/` and `open-webu
 
 ```bash
 cd scripts
-python3 -m venv venv
+python3.11 -m venv venv
 ```
 
 Activate the venv:
@@ -130,6 +130,16 @@ python ingest_usnews_rankings.py --input data/usnews_top10_2020_2026_long.csv --
 ```
 
 This creates and populates the `usnews_rankings` index used by the US News ranking tools in Open WebUI.
+
+## 5.2 Run deadline ingestion
+
+With the same `scripts/` venv activated and Elasticsearch running, ingest it with:
+
+```bash
+python ingest_deadlines.py --create-index
+```
+
+This creates and populates the `grad_program_deadlines` index used by the deadline tools in Open WebUI.
 
 ---
 
